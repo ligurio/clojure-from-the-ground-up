@@ -3455,7 +3455,697 @@ floating-point numbers. `(* 2452.45 100)` returns `245244.99999999997`, but (exa
 
 ### State
 
-https://aphyr.com/posts/306-clojure-from-the-ground-up-state
+Most programs encompass change. People grow up, leave town, fall in love, and
+take new names. Engines burn through fuel while their parts wear out, and new
+ones are swapped in. Forests burn down and their logs become nurseries for new
+trees. Despite these changes, we say “She’s still Nguyen”, “That’s my
+motorcycle”, “The same woods I hiked through as a child.”
+
+Identity is a skein we lay across the world of immutable facts; a single entity
+which encompasses change. In programming, identities unify different values
+over time. Identity types are mutable references to immutable values.
+
+In this chapter, we’ll move from immutable references to complex concurrent
+transactions. In the process we’ll get a taste of concurrency and parallelism,
+which will motivate the use of more sophisticated identity types. These are not
+easy concepts, so don’t get discouraged. You don’t have to understand this
+chapter fully to be a productive programmer, but I do want to hint at why
+things work this way. As you work with state more, these concepts will
+solidify.
+
+#### Immutability
+
+The references we’ve used in let bindings and function arguments are immutable:
+they never change.
+
+```clojure
+user=> (let [x 1]
+         (prn (inc x))
+         (prn (inc x)))
+2
+2
+```
+
+The expression (inc x) did not alter x: x remained 1. The same applies to
+strings, lists, vectors, maps, sets, and most everything else in Clojure:
+
+```
+user=> (let [x [1 2]]
+         (prn (conj x :a))
+         (prn (conj x :b)))
+[1 2 :a]
+[1 2 :b]
+```
+
+Immutability also extends to let bindings, function arguments, and other
+symbols. Functions remember the values of those symbols at the time the
+function was constructed.
+
+```clojure
+(defn present
+  [gift]
+  (fn [] gift))
+
+user=> (def green-box (present "clockwork beetle"))
+#'user/green-box
+user=> (def red-box (present "plush tiger"))
+#'user/red-box
+user=> (red-box)
+"plush tiger"
+user=> (green-box)
+"clockwork beetle"
+```
+
+The present function creates a new function. That function takes no arguments,
+and always returns the gift. Which gift? Because gift is not an argument to the
+inner function, it refers to the value from the outer function body. When we
+packaged up the red and green boxes, the functions we created carried with them
+a memory of the gift symbol’s value.
+
+This is called closing over the gift variable; the inner function is sometimes
+called a closure. In Clojure, new functions close over all variables except
+their arguments–the arguments, of course, will be provided when the function is
+invoked.
+
+#### Delays
+
+Because functions close over their arguments, they can be used to defer
+evaluation of expressions. That’s how we introduced functions originally–like
+let expressions, but with a number (maybe zero!) of symbols missing, to be
+filled in at a later time.
+
+```clojure
+user=> (do (prn "Adding") (+ 1 2))
+"Adding"
+3
+user=> (def later (fn [] (prn "Adding") (+ 1 2)))
+#'user/later
+user=> (later)
+"Adding"
+3
+```
+
+Evaluating (def later ...) did not evaluate the expressions in the function
+body. Only when we invoked the function later did Clojure print "Adding" to the
+screen, and return 3. This is the basis of concurrency: evaluating expressions
+outside their normal, sequential order.
+
+This pattern of deferring evaluation is so common that there’s a standard macro
+for it, called delay:
+
+```clojure
+user=> (def later (delay (prn "Adding") (+ 1 2)))
+#'user/later
+user=> later
+#<Delay@2dd31aac: :pending>
+user=> (deref later)
+"Adding"
+3
+```
+
+Instead of a function, delay creates a special type of Delay object: an
+identity which refers to expressions which should be evaluated later. We
+extract, or dereference, the value of that identity with deref. Delays follow
+the same rules as functions, closing over lexical scope–because delay actually
+macroexpands into an anonymous function.
+
+```clojure
+user=> (source delay)
+(defmacro delay
+  "Takes a body of expressions and yields a Delay object that will
+  invoke the body only the first time it is forced (with force or deref/@), and
+  will cache the result and return it on all subsequent force
+  calls. See also - realized?"
+  {:added "1.0"}
+  [& body]
+    (list 'new 'clojure.lang.Delay (list* `^{:once true} fn* [] body)))
+```
+
+Why the Delay object instead of a plain old function? Because unlike function
+invocation, delays only evaluate their expressions once. They remember their
+value, after the first evaluation, and return it for every successive deref.
+
+```clojure
+user=> (deref later)
+3
+user=> (deref later)
+3
+```
+
+By the way, there’s a shortcut for (deref something): the wormhole operator @:
+
+```clojure
+user=> @later ; Interpreted as (deref later)
+3
+```
+
+Remember how map returned a sequence immediately, but didn’t actually perform
+any computation until we asked for elements? That’s called lazy evaluation.
+Because delays are lazy, we can avoid doing expensive operations until they’re
+really needed. Like an IOU, we use delays when we aren’t ready to do something
+just yet, but when someone calls in the favor, we’ll make sure it happens.
+
+#### Futures
+
+What if we wanted to opportunistically defer computation? Modern computers have
+multiple cores, and operating systems let us share a core between two tasks. It
+would be great if we could use that multitasking ability to say, “I don’t need
+the result of evaluating these expressions yet, but I’d like it later. Could
+you start working on it in the meantime?”
+
+Enter the future: a delay which is evaluated in parallel. Like delays, futures
+return immediately, and give us an identity which will point to the value of
+the last expression in the future–in this case, the value of (+ 1 2).
+
+```clojure
+user=> (def x (future (prn "hi") (+ 1 2)))
+"hi"
+#'user/x
+user=> (deref x)
+3
+```
+
+Notice how the future printed “hi” right away. That’s because futures are
+evaluated in a new thread. On multicore computers, two threads can run in
+parallel, on different cores the same time. When there are more threads than
+cores, the cores trade off running different threads. Both parallel and
+non-parallel evaluation of threads are concurrent because expressions from
+different threads can be evaluated out of order.
+
+```clojure
+user=> (dotimes [i 5] (future (prn i)))
+14
+
+3
+0
+2
+nil
+```
+
+Five threads running at once. Notice that the thread printing 1 didn’t even get
+to move to a new line before 4 showed up–then both threads wrote new lines at
+the same time. There are techniques to control this concurrent execution so
+that things happen in some well-defined sequence, like agents and locks, but
+we’ll discuss those later.
+
+Just like delays, we can deref a future as many times as we want, and the
+expressions are only evaluated once.
+
+```clojure
+user=> (def x (future (prn "hi") (+ 1 2)))
+#'user/x"hi"
+
+user=> @x
+3
+user=> @x
+3
+```
+
+Futures are the most generic parallel construct in Clojure. You can use futures
+to do CPU-intensive computation faster, to wait for multiple network requests
+to complete at once, or to run housekeeping code periodically.
+
+### Promises
+
+Delays defer evaluation, and futures parallelize it. What if we wanted to defer
+something we don’t even have yet? To hand someone an empty box and, later,
+before they open it, sneak in and replacing its contents with an actual gift?
+Surely I’m not the only one who does birthday presents this way.
+
+```clojure
+user=> (def box (promise))
+#'user/box
+user=> box
+#<core$promise$reify__6310@1d7762e: :pending>
+```
+
+This box is pending a value. Like futures and delays, if we try to open it,
+we’ll get stuck and have to wait for something to appear inside:
+
+```clojure
+user=> (deref box)
+```
+
+But unlike futures and delays, this box won’t be filled automatically. Hold the
+Control key and hit c to give up on trying to open that package. Nobody else is
+in this REPL, so we’ll have to buy our own presents.
+
+```clojure
+user=> (deliver box :live-scorpions!)
+#<core$promise$reify__6310@1d7762e: :live-scorpions!>
+user=> (deref box)
+:live-scorpions!
+```
+
+Wow, that’s a terrible gift. But at least there’s something there: when we
+dereference the box, it opens immediately and live scorpions skitter out. Can
+we get a do-over? Let’s try a nicer gift.
+
+```clojure
+user=> (deliver box :puppy)
+nil
+user=> (deref box)
+:live-scorpions!
+```
+
+Like delays and futures, there’s no going back on our promises. Once delivered,
+a promise always refers to the same value. This is a simple identity type: we
+can set it to a value once, and read it as many times as we want. promise is
+also a concurrency primitive: it guarantees that any attempt to read the value
+will wait until the value has been written. We can use promises to synchronize
+a program which is being evaluated concurrently–for instance, this simple card
+game:
+
+```clojure
+user=> (def card (promise))
+#'user/card
+user=> (def dealer (future 
+                     (Thread/sleep 5000)
+                     (deliver card [(inc (rand-int 13))
+                                    (rand-nth [:clubs :spades :hearts :diamonds])])))
+#'user/dealer
+user=> (deref card)
+[5 :diamonds]
+```
+
+In this program, we set up a dealer thread which waits for five seconds (5000
+milliseconds), then delivers a random card. While the dealer is sleeping, we
+try to deref our card–and have to wait until the five seconds are up.
+Synchronization and identity in one package.
+
+Where delays are lazy, and futures are parallel, promises are concurrent
+without specifying how the evaluation occurs. We control exactly when and how
+the value is delivered. You can think of both delays and futures as being built
+atop promises, in a way.
+
+#### Vars
+
+So far the identities we’ve discussed have referred (eventually) to a single
+value, but the real world needs names that refer to different values at
+different points in time. For this, we use vars.
+
+We’ve touched on vars before–they’re transparent mutable references. Each var
+has a value associated with it, and that value can change over time. When a var
+is evaluated, it is replaced by its present value transparently–everywhere in
+the program.
+
+```clojure
+user=> (def x :mouse)
+#'user/x
+user=> (def box (fn [] x))
+#'user/box
+user=> (box)
+:mouse
+user=> (def x :cat)
+#'user/x
+user=> (box)
+:cat
+```
+
+The box function closed over x–but calling (box) returned different results
+depending on the current value of x. Even though the var x remained unchanged
+throughout this example, the value associated with that var did change!
+
+Using mutable vars allows us to write programs which we can redefine as we go
+along.
+
+```clojure
+user=> (defn decouple [glider]
+  #_=>   (prn "bolts released"))
+#'user/decouple
+user=> (defn launch [glider]
+  #_=>   (decouple glider)
+  #_=>   (prn glider "away!"))
+#'user/launch
+user=> (launch "albatross")
+"bolts released"
+"albatross" "away!"
+nil
+
+user=> (defn decouple [glider]
+  #_=>   (prn "tether released"))
+#'user/decouple
+user=> (launch "albatross")
+"tether released"
+"albatross" "away!"
+```
+
+A reference which is the same everywhere is called a global variable, or simply
+a global. But vars have an additional trick up their sleeve: with a dynamic
+var, we can override their value only within the scope of a particular function
+call, and nowhere else.
+
+```clojure
+user=> (def ^:dynamic *board* :maple)
+#'user/*board*
+```
+
+^:dynamic tells Clojure that this var can be overridden in one particular
+scope. By convention, dynamic variables are named with asterisks around
+them–this reminds us, as programmers, that they are likely to change. Next, we
+define a function that uses that dynamic var:
+
+```clojure
+user=> (defn cut [] (prn "sawing through" *board*))
+#'user/cut
+```
+
+Note that cut closes over the var *board*, but not the value :maple. Every time
+the function is invoked, it looks up the current value of *board*.
+
+```clojure
+user=> (cut)
+"sawing through" :maple
+nil
+user=> (binding [*board* :cedar] (cut))
+"sawing through" :cedar
+nil
+user=> (cut)
+"sawing through" :maple
+```
+
+Like let, the binding macro assigns a value to a name–but where fn and let
+create immutable lexical scope, binding creates dynamic scope. The difference?
+Lexical scope is constrained to the literal text of the fn or let
+expression–but dynamic scope propagates through function calls.
+
+Within the binding expression, and in every function called from that
+expression, and every function called from those functions, and so on, *board*
+has the value :cedar. Outside the binding expression, the value is still
+:maple. This safety property holds even when the program is executed in
+multiple threads: only the thread which evaluated the binding expression uses
+that value. Other threads are unaffected.
+
+While we use def all the time in the REPL, in real programs you should only
+mutate vars sparingly. They’re intended for naming functions, important bits of
+global data, and for tracking the environment of a program–like where to print
+messages with prn, which database to talk to, and so on. Using vars for mutable
+program state is a recipe for disaster, as we’re about to see.
+
+#### Atoms
+
+Vars can be read, set, and dynamically bound–but they aren’t easy to evolve.
+Imagine building up a set of integers:
+
+```clojure
+user=> (def xs #{})
+#'user/xs
+user=> (dotimes [i 10] (def xs (conj xs i)))
+user=> xs
+#{0 1 2 3 4 5 6 7 8 9}
+```
+
+For each number from 0 to 9, we take the current set of numbers xs, add a
+particular number i to that set, and redefine xs as the result. This is a
+common idiom in imperative language like C, Ruby, Javascript, or Java–all
+variables are mutable by default.
+
+```clojure
+ImmutableSet xs = new ImmutableSet();
+for (int i = 0; i++; i < 10) {
+  xs = xs.add(i);
+}
+```
+
+It seems straightforward enough, but there are serious problems lurking here.
+Specifically, this program is not thread safe.
+
+```clojure
+user=> (def xs #{})
+user=> (dotimes [i 10] (future (def xs (conj xs i))))
+#'user/xs
+nil
+user=> xs
+#{1 4 5 7}
+```
+
+This program runs 10 threads in parallel, and each reads the current value of
+xs, adds its particular number, and defines xs to be that new set of numbers.
+This read-modify-update process assumed that all updates would be
+consecutive–not concurrent. When we allowed the program to do two
+read-modify-updates at the same time, updates were lost.
+
+```clojure
+Thread 2 read #{0 1}
+Thread 3 read #{0 1}
+Thread 2 wrote #{0 1 2}
+Thread 3 wrote #{0 1 3}
+```
+
+This interleaving of operations allowed the number 2 to slip through the
+cracks. We need something stronger–an identity which supports safe
+transformation from one state to another. Enter atoms.
+
+```clojure
+user=> (def xs (atom #{}))
+#'user/xs
+user=> xs
+#<Atom@30bb8cc9: #{}>
+```
+
+The initial value of this atom is #{}. Unlike vars, atoms are not transparent.
+When evaluated, they don’t return their underlying values–but notice that when
+printed, the current value is hiding inside. To get the current value out of an
+atom, we have to use deref or @.
+
+```clojure
+user=> (deref xs)
+#{}
+user=> @xs
+#{}
+```
+
+Like vars, atoms can be set to a particular value–but instead of def, we use
+reset!. The exclamation point (sometimes called a bang) is there to remind us
+that this function modifies the state of its arguments–in this case, changing
+the value of the atom.
+
+```clojure
+user=> (reset! xs :foo)
+:foo
+user=> xs
+#<Atom@30bb8cc9: :foo>
+```
+
+Unlike vars, atoms can be safely updated using swap!. swap! uses a pure
+function which takes the current value of the atom and returns a new value.
+Under the hood, Clojure does some tricks to ensure that these updates are
+linearizable, which means:
+
+1. All updates with `swap! complete in what appears to be a single consecutive order.
+2. The effect of a swap! never takes place before calling swap!.
+3. The effect of a swap! is visible to everyone once swap! returns.
+
+```clojure
+user=> (def x (atom 0))
+#'user/x
+user=> (swap! x inc)
+1
+user=> (swap! x inc)
+2
+```
+
+The first swap! reads the value 0, calls (inc 0) to obtain 1, and writes 1 back
+to the atom. Each call to swap! returns the value that was just written.
+
+We can pass additional arguments to the function swap! calls. For instance,
+(swap! x + 5 6) will call (+ x 5 6) to find the new value. Now we have the
+tools to correct our parallel program from earlier:
+
+```clojure
+user=> (def xs (atom #{}))
+#'user/xs
+user=> (dotimes [i 10] (future (swap! xs conj i)))
+nil
+user=> @xs
+#{0 1 2 3 4 5 6 7 8 9}
+```
+
+Note that the function we use to update an atom must be pure–must not mutate
+any state–because when resolving conflicts between multiple threads, Clojure
+might need to call the update function more than once. Clojure’s reliance on
+immutable datatypes, immutable variables, and pure functions enables this
+approach to linearizable mutability. Languages which emphasize mutable
+datatypes need to use other constructs.
+
+Atoms are the workhorse of Clojure state. They’re lightweight, safe, fast, and
+flexible. You can use atoms with any immutable datatype–for instance, a map to
+track complex state. Reach for an atom whenever you want to update a single
+thing over time.
+
+#### Refs
+
+Atoms are a great way to represent state, but they are only linearizable
+individually. Updates to an atom aren’t well-ordered with respect to other
+atoms, so if we try to update more than one atom at once, we could see the same
+kinds of bugs that we did with vars.
+
+For multi-identity updates, we need a stronger safety property than single-atom
+linearizability. We want serializability: a global order. For this, Clojure has
+an identity type called a Ref.
+
+```clojure
+user=> (def x (ref 0))
+#'user/x
+user=> x
+#<Ref@1835d850: 0>
+```
+
+Like all identity types, refs are dereferencable:
+
+```clojure
+user=> @x
+0
+```
+
+But where atoms are updated individually with swap!, refs are updated in groups
+using dosync transactions. Just as we reset! an atom, we can set refs to new
+values using ref-set–but unlike atoms, we can change more than one ref at once.
+
+```clojure
+user=> (def x (ref 0))
+user=> (def y (ref 0))
+user=> (dosync
+         (ref-set x 1)
+         (ref-set y 2))
+2
+user=> [@x @y]
+[1 2]
+```
+
+The equivalent of swap!, for a ref, is alter:
+
+```clojure
+user=> (def x (ref 1))
+user=> (def y (ref 2))
+user=> (dosync
+         (alter x + 2)
+         (alter y inc))
+3
+user=> [@x @y]
+[3 3]
+```
+
+All alter operations within a dosync take place atomically–their effects are
+never interleaved with other transactions. If it’s OK for an operation to take
+place out of order, you can use commute instead of alter for a performance
+boost:
+
+```clojure
+user=> (dosync
+         (commute x + 2)
+         (commute y inc))
+```
+
+These updates are not guaranteed to take place in the same order–but if all our
+transactions are equivalent, we can relax the ordering constraints. x + 2 + 3
+is equal to x + 3 + 2, so we can do the additions in either order. That’s what
+commutative means: the same result from all orders. It’s a weaker, but faster
+kind of safety property.
+
+Finally, if you want to read a value from one ref and use it to update another,
+use ensure instead of deref to perform a strongly consistent read–one which is
+guaranteed to take place in the same logical order as the dosync transaction
+itself. To add y’s current value to x, use:
+
+```clojure
+user=> (dosync
+         (alter x + (ensure y)))
+```
+
+Refs are a powerful construct, and make it easier to write complex
+transactional logic safely. However, that safety comes at a cost: refs are
+typically an order of magnitude slower to update than atoms.
+
+Use refs only where you need to update multiple pieces of state
+independently–specifically, where different transactions need to work with
+distinct but partly overlapping pieces of state. If there’s no overlap between
+updates, use distinct atoms. If all operations update the same identities, use
+a single atom to hold a map of the system’s state. If a system requires complex
+interlocking state spread throughput the program–that’s when to reach for refs.
+
+#### Summary
+
+We moved beyond immutable programs into the world of changing state–and
+discovered the challenges of concurrency and parallelism. Where symbols provide
+immutable and transparent names for values objects, Vars provide mutable
+transparent names. We also saw a host of anonymous identity types for different
+purposes: delays for lazy evaluation, futures for parallel evaluation, and
+promises for arbitrary handoff of a value. Updates to vars are unsafe, so atoms
+and refs provide linearizable and serializable identities where transformations
+are safe.
+
+Where reading a symbol or var is transparent–they evaluate directly to their
+current values–reading these new identity types requires the use of deref.
+Delays, futures, and promises block: deref must wait until the value is ready.
+This allows synchronization of concurrent threads. Atoms and refs, by contrast,
+can be read immediately at any time–but updating their values should occur
+within a swap! or dosync transaction, respectively.
+
+| Type	  | Mutability	| Reads	       | Updates       | Evaluation  | Scope          |
+|:-------:|:-----------:|:------------:|:-------------:|:-----------:|:--------------:|
+| Symbol  | Immutable	| Transparent  |               |             | Lexical        |
+| Var	  | Mutable	| Transparent  | Unrestricted  |	     | Global/Dynamic |
+| Delay	  | Mutable	| Blocking     | Once only     | Lazy        | 	
+| Future  | Mutable	| Blocking     | Once only     | Parallel    |	
+| Promise | Mutable	| Blocking     | Once only     |	     |	
+| Atom	  | Mutable	| Nonblocking  | Linearizable  |	     |
+| Ref	  | Mutable	| Nonblocking  | Serializable  |	     |
+
+State is undoubtedly the hardest part of programming, and this chapter probably
+felt overwhelming! On the other hand, we’re now equipped to solve serious
+problems. We’ll take a break to apply what we’ve learned through practical
+examples, in Chapter Seven: Logistics.
+
+#### Exercises
+
+Finding the sum of the first 10000000 numbers takes about 1 second on my machine:
+
+```clojure
+user=> (defn sum [start end] (reduce + (range start end)))
+user=> (time (sum 0 1e7))
+"Elapsed time: 1001.295323 msecs"
+49999995000000
+```
+
+1. Use delay to compute this sum lazily; show that it takes no time to return the
+delay, but roughly 1 second to deref.
+2. We can do the computation in a new thread directly, using (.start (Thread.
+   (fn [] (sum 0 1e7)))–but this simply runs the (sum) function and discards
+the results. Use a promise to hand the result back out of the thread. Use this
+technique to write your own version of the future macro.
+3. If your computer has two cores, you can do this expensive computation twice
+   as fast by splitting it into two parts: (sum 0 (/ 1e7 2)), and (sum (/ 1e7
+2) 1e7), then adding those parts together. Use future to do both parts at once,
+and show that this strategy gets the same answer as the single-threaded
+version, but takes roughly half the time.
+4. Instead of using reduce, store the sum in an atom and use two futures to add
+   each number from the lower and upper range to that atom. Wait for both
+futures to complete using deref, then check that the atom contains the right
+number. Is this technique faster or slower than reduce? Why do you think that
+might be?
+5. Instead of using a lazy list, imagine two threads are removing tasks from a
+   pile of work. Our work pile will be the list of all integers from 0 to
+10000:
+
+```clojure
+user=> (def work (ref (apply list (range 1e5))))
+user=> (take 10 @work)
+(0 1 2 3 4 5 6 7 8 9)
+```
+
+And the sum will be a ref as well:
+
+```clojure
+user=> (def sum (ref 0))
+```
+
+Write a function which, in a dosync transaction, removes the first number in
+work and adds it to sum.
+Then, in two futures, call that function over and over again until there’s no
+work left. Verify that @sum is 4999950000. Experiment with different
+combinations of alter and commute–if both are correct, is one faster? Does
+using deref instead of ensure change the result?
 
 ### Logistics
 
