@@ -309,6 +309,7 @@ verbs modified by adverbs, and so on. “Lindsay, my best friend, took the dog
 which we found together at the pound on fourth street, for a walk with her
 mother Michelle.”
 
+```clojure
 Took
   Lindsay
     my best friend
@@ -319,54 +320,133 @@ Took
     for a walk
       with her mother
         Michelle
+```
 
-But let’s try something simpler. Something we know how to talk about. “Increment the number zero.” As a tree:
+But let’s try something simpler. Something we know how to talk about.
+“Increment the number zero.” As a tree:
 
+```clojure
 Increment
   the number zero
-We have a symbol for incrementing, and we know how to write the number zero. Let’s combine them in a list:
+```
 
+We have a symbol for incrementing, and we know how to write the number zero.
+Let’s combine them in a list:
+
+```clojure
 clj=> '(inc 0)
 (inc 0)
-A basic sentence. Remember, since it’s quoted, we’re talking about the tree, the text, the expression, by itself. Absent interpretation. If we remove the single-quote, Clojure will interpret the expression:
+```
 
+A basic sentence. Remember, since it’s quoted, we’re talking about the tree,
+the text, the expression, by itself. Absent interpretation. If we remove the
+single-quote, Clojure will interpret the expression:
+
+```clojure
 user=> (inc 0)
 1
+```
+
 Incrementing zero yields one. And if we wanted to increment that value?
 
+```clojure
 Increment
   increment
     the number zero
 user=> (inc (inc 0))
 2
-A sentence in Lisp is a list. It starts with a verb, and is followed by zero or more objects for that verb to act on. Each part of the list can itself be another list, in which case that nested list is evaluated first, just like a nested clause in a sentence. When we type
+```
 
+A sentence in Lisp is a list. It starts with a verb, and is followed by zero or
+more objects for that verb to act on. Each part of the list can itself be
+another list, in which case that nested list is evaluated first, just like a
+nested clause in a sentence. When we type
+
+```clojure
 (inc (inc 0))
+```
+
 Clojure first looks up the meanings for the symbols in the code:
 
+```clojure
 (#<core$inc clojure.core$inc@6f7ef41c>
   (#<core$inc clojure.core$inc@6f7ef41c>
     0))
+```
+
 Then evaluates the innermost list (inc 0), which becomes the number 1:
 
+```clojure
 (#<core$inc clojure.core$inc@6f7ef41c>
  1)
+```
+
 Finally, it evaluates the outer list, incrementing the number 1:
 
+``clojure
 2
-Every list starts with a verb. Parts of a list are evaluated from left to right. Innermost lists are evaluated before outer lists.
+```
 
+Every list starts with a verb. Parts of a list are evaluated from left to
+right. Innermost lists are evaluated before outer lists.
+
+```clojure
 (+ 1 (- 5 2) (+ 3 4))
 (+ 1 3       (+ 3 4))
 (+ 1 3       7)
 11
+```
+
 That’s it.
 
-The entire grammar of Lisp: the structure for every expression in the language. We transform expressions by substituting meanings for symbols, and obtain some result. This is the core of the Lambda Calculus, and it is the theoretical basis for almost all computer languages. Ruby, Javascript, C, Haskell; all languages express the text of their programs in different ways, but internally all construct a tree of expressions. Lisp simply makes it explicit.
+The entire grammar of Lisp: the structure for every expression in the language.
+We transform expressions by substituting meanings for symbols, and obtain some
+result. This is the core of the Lambda Calculus, and it is the theoretical
+basis for almost all computer languages. Ruby, Javascript, C, Haskell; all
+languages express the text of their programs in different ways, but internally
+all construct a tree of expressions. Lisp simply makes it explicit.
 
-Review
-We started by learning a few basic nouns: numbers like 5, strings like "cat", and symbols like inc and +. We saw how quoting makes the difference between an expression itself and the thing it evaluates to. We discovered symbols as names for other values, just like how words represent concepts in any other language. Finally, we combined lists to make trees, and used those trees to represent a program.
+#### Review
 
-With these basic elements of syntax in place, it’s time to expand our vocabulary with new verbs and nouns; learning to represent more complex values and transform them in different ways.
+We started by learning a few basic nouns: numbers like 5, strings like "cat",
+and symbols like inc and +. We saw how quoting makes the difference between an
+expression itself and the thing it evaluates to. We discovered symbols as names
+for other values, just like how words represent concepts in any other language.
+Finally, we combined lists to make trees, and used those trees to represent a
+program.
 
+With these basic elements of syntax in place, it’s time to expand our
+vocabulary with new verbs and nouns; learning to represent more complex values
+and transform them in different ways.
 
+### Basic types
+
+https://aphyr.com/posts/302-clojure-from-the-ground-up-basic-types
+
+### Functions
+
+https://aphyr.com/posts/303-clojure-from-the-ground-up-functions
+
+### Sequences
+
+https://aphyr.com/posts/304-clojure-from-the-ground-up-sequences
+
+### Macros
+
+https://aphyr.com/posts/305-clojure-from-the-ground-up-macros
+
+### State
+
+https://aphyr.com/posts/306-clojure-from-the-ground-up-state
+
+### Logistics
+
+https://aphyr.com/posts/311-clojure-from-the-ground-up-logistics
+
+### Modeling
+
+https://aphyr.com/posts/312-clojure-from-the-ground-up-modeling
+
+### Debugging
+
+https://aphyr.com/posts/319-clojure-from-the-ground-up-debugging
