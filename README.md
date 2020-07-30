@@ -247,7 +247,7 @@ user=> inc
 ```
 
 This is a verb called `inc`–short for “increment”. Specifically, `inc` is a
-*symbol* which points to a verb: #<core$inc clojure.core$inc@6f7ef41c>– just like
+*symbol* which points to a verb: `#<core$inc clojure.core$inc@6f7ef41c>` – just like
 the word “run” is a *name* for the *concept* of running.
 
 There’s a key distinction here–that a signifier, a reference, a label, is not
