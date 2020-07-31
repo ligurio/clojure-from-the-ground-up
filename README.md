@@ -5118,7 +5118,1383 @@ finds the counties where that field is most often reported, per capita.
 
 ### Modeling
 
-https://aphyr.com/posts/312-clojure-from-the-ground-up-modeling
+Until this point in the book, we’ve dealt primarily in specific details: what
+an expression is, how math works, which functions apply to different data
+structures, and where code lives. But programming, like speaking a language,
+painting landscapes, or designing turbines, is about more than the nuts and
+bolts of the trade. It’s knowing how to combine those parts into a cohesive
+whole–and this is a skill which is difficult to describe formally. In this part
+of the book, I’d like to work with you on an integrative tour of one particular
+problem: modeling a rocket in flight.
+
+We’re going to reinforce our concrete knowledge of the standard library by
+using maps, sequences, and math functions together. At the same time, we’re
+going to practice how to represent a complex system; decomposing a problem into
+smaller parts, naming functions and variables, and writing tests.
+
+#### So you want to go to space
+
+First, we need a representation of a craft. The obvious properties for a rocket
+are its dry mass (how much it weighs without fuel), fuel mass, position,
+velocity, and time. We’ll create a new file in our scratch
+project–src/scratch/rocket.clj–to talk about spacecraft.
+
+For starters, let’s pattern our craft after an Atlas V launch vehicle. We’ll
+represent everything in SI units–kilograms, meters, newtons, etc. The Atlas V
+carries 627,105 lbs of LOX/RP-1 fuel, and a total mass of 334,500 kg gives only
+50,050 kg of mass which isn’t fuel. It develops 4152 kilonewtons of thrust and
+runs for 253 seconds, with a specific impulse (effectively, exhaust velocity)
+of 3.05 kilometers/sec. Real rockets develop varying amounts of thrust
+depending on the atmosphere, but we’ll pretend it’s constant in our simulation.
+
+```clojure
+(defn atlas-v
+ []
+  {:dry-mass  50050
+   :fuel-mass 284450
+   :time 0
+   :isp 3050
+   :max-fuel-rate (/ 284450 253)
+   :max-thrust 4.152e6})
+```
+
+How heavy is the craft?
+
+```clojure
+(defn mass
+  "The total mass of a craft."
+  [craft]
+  (+ (:dry-mass craft) (:fuel-mass craft)))
+```
+
+What about the position and velocity? We could represent them in Cartesian
+coordinates–x, y, and z–or we could choose spherical coordinates: a radius from
+the planet and angle from the pole and 0 degrees longitude. I’ve got a hunch
+that spherical coordinates will be easier for position, but accelerating the
+craft will be simplest in in x, y, and z terms. The center of the planet is a
+natural choice for the coordinate system’s origin (0, 0, 0). We’ll choose z
+along the north pole, and x and y in the plane of the equator.
+
+Let’s define a space center where we launch from–let’s say it’s initially on
+the equator at y=0. To figure out the x coordinate, we’ll need to know how far
+the space center is from the center of the earth. The earth’s equatorial radius
+is ~6378 kilometers.
+
+```clojure
+(def earth-equatorial-radius
+ "Radius of the earth, in meters"
+  6378137)
+```
+
+How fast is the surface moving? Well the earth’s day is 86,400 seconds long,
+
+```clojure
+(def earth-day
+  "Length of an earth day, in seconds."
+  86400)
+```
+
+which means a given point on the equator has to go 2 * pi * equatorial radius
+meters in earth-day seconds:
+
+```clojure
+(def earth-equatorial-speed
+  "How fast points on the equator move, relative to the center of the earth,
+  in meters/sec."
+  (/ (* 2 Math/PI earth-equatorial-radius)
+     earth-day))
+```
+
+So our space center is on the equator (z=0), at y=0 by choice, which means x is
+the equatorial radius. Since the earth is spinning, the space center is moving
+at earth-equatorial-speed in the y direction–and not changing at all in x or z.
+
+```clojure
+(def initial-space-center
+  "The initial position and velocity of the launch facility"
+  {:time     0
+   :position {:x earth-equatorial-radius
+              :y 0
+              :z 0}
+   :velocity {:x 0
+              :y earth-equatorial-speed
+              :z 0}})
+```
+
+:position and :velocity are both vectors, in the sense that they describe a
+position, or a direction, in terms of x, y, and z components. This is a
+different kind of vector than a Clojure vector, like [1 2 3]. We’re actually
+representing these logical vectors as Clojure maps, with :x, :y, and :z keys,
+corresponding to the distance along the x, y, and z directions, from the center
+of the earth. Throughout this chapter, I’ll mainly use the term coordinates to
+talk about these structures, to avoid confusion with Clojure vectors.
+
+Now let’s create a function which positions our craft on the launchpad at time
+0. We’ll just merge the spacecraft’s with the initial space center, overwriting
+the craft’s time and space coordinates.
+
+```clojure
+(defn prepare
+  "Prepares a craft for launch from an equatorial space center."
+  [craft]
+  (merge craft initial-space-center))
+```
+
+#### Forces
+
+Gravity continually pulls the spacecraft towards the center of the Earth,
+accelerating it by 9.8 meters/second every second. To figure out what direction
+is towards the Earth, we’ll need the angles of a spherical coordinate system.
+We’ll use the trigonometric functions from java.lang.Math.
+
+```clojure
+(defn magnitude
+  "What's the radius of a given set of cartesian coordinates?"
+  [c]
+  ; By the Pythagorean theorem...
+  (Math/sqrt (+ (Math/pow (:x c) 2)
+                (Math/pow (:y c) 2)
+                (Math/pow (:z c) 2))))
+
+(defn cartesian->spherical
+  "Converts a map of Cartesian coordinates :x, :y, and :z to spherical coordinates :r, :theta, and :phi."
+  [c]
+  (let [r (magnitude c)]
+    {:r r
+     :theta (Math/acos (/ (:z c) r))
+     :phi   (Math/atan (/ (:y c) (:x c)))}))
+
+(defn spherical->cartesian
+  "Converts spherical to Cartesian coordinates."
+  [c]
+  {:x (* (:r c) (Math/sin (:theta c)) (Math/cos (:phi c)))
+   :y (* (:r c) (Math/sin (:theta c)) (Math/sin (:phi c)))
+   :z (* (:r c) (Math/cos (:phi c)))})
+```
+
+With those angles in mind, computing the gravitational acceleration is easy. We
+just take the spherical coordinates of the spacecraft, and replace the radius
+with the total force due to gravity. Then we can transform that spherical force
+back into Cartesian coordinates.
+
+```clojure
+(def g "Acceleration of gravity in meters/s^2" -9.8)
+
+(defn gravity-force
+  "The force vector, each component in Newtons, due to gravity."
+  [craft]
+  ; Since force is mass times acceleration...
+  (let [total-force (* g (mass craft))]
+    (-> craft
+        ; Now we'll take the craft's position
+        :position
+        ; in spherical coordinates,
+        cartesian->spherical
+        ; replace the radius with the gravitational force...
+        (assoc :r total-force)
+        ; and transform back to Cartesian-land
+        spherical->cartesian)))
+```
+
+Rockets produce thrust by consuming fuel. Let’s say the fuel consumption is
+always the maximum, until we run out:
+
+```clojure
+(defn fuel-rate
+  "How fast is fuel, in kilograms/second, consumed by the craft?"
+  [craft]
+  (if (pos? (:fuel-mass craft))
+    (:max-fuel-rate craft)
+    0))
+```
+
+Now that we know how much fuel is being consumed, we can compute the force the
+rocket engine develops. That force is simply the mass consumed per second times
+the exhaust velocity–which is the specific impulse :isp. We’ll ignore
+atmospheric effects.
+
+```clojure
+(defn thrust
+  "How much force, in newtons, does the craft's rocket engines exert?"
+  [craft]
+  (* (fuel-rate craft) (:isp craft)))
+```
+
+Cool. What about the direction of thrust? Just for grins, let’s keep the rocket
+pointing entirely along the x axis.
+
+```clojure
+(defn engine-force
+  "The force vector, each component in Newtons, due to the rocket engine."
+  [craft]
+  (let [t (thrust craft)]
+    {:x t
+     :y 0
+     :z 0}))
+```
+
+The total force on a craft is just the sum of gravity and thrust. To sum these
+maps together, we’ll need a way to sum the x, y, and z components
+independently. Clojure’s merge-with function combines common fields in maps
+using a function, so this is surprisingly straightforward.
+
+```clojure
+(defn total-force
+  "Total force on a craft."
+  [craft]
+  (merge-with + (engine-force craft)
+                (gravity-force craft)))
+```
+
+The acceleration of a craft, by Newton’s second law, is force divided by mass.
+This one’s a little trickier; given {:x 1 :y 2 :z 4} we want to apply a
+function–say, multiplication by a factor, to each number. Since maps are
+sequences of key/value pairs…
+
+```clojure
+user=> (seq {:x 1 :y 2 :z 3})
+([:z 3] [:y 2] [:x 1])
+```
+
+… and we can build up new maps out of key/value pairs using into…
+
+```clojure
+user=> (into {} [[:x 4] [:y 5]])
+{:x 4, :y 5}
+```
+
+… we can write a function map-values which works like map, but affects the
+values of a map data structure.
+
+```clojure
+(defn map-values
+  "Applies f to every value in the map m."
+  [f m]
+  (into {}
+        (map (fn [pair]
+               [(key pair) (f (val pair))])
+             m)))
+```
+
+And that allows us to define a scale function which scales a set of coordinates
+by some factor:
+
+```clojure
+(defn scale
+  "Multiplies a map of x, y, and z coordinates by the given factor."
+  [factor coordinates]
+  (map-values (partial * factor) coordinates))
+```
+
+What’s that partial thing? It’s a function which takes a function, and some
+arguments, and returns a new function. What does the new function do? It calls
+the original function, with the arguments passed to partial, followed by any
+arguments passed to the new function. In short, (partial * factor) returns a
+function that takes any number, and multiplies it by factor.
+
+So to divide each component of the force vector by the mass of the craft:
+
+```clojure
+(defn acceleration
+  "Total acceleration of a craft."
+  [craft]
+  (let [m (mass craft)]
+    (scale (/ m) (total-force craft))))
+```
+
+Note that (/ m) returns 1/m. Our scale function can do double-duty as both
+multiplication and division.
+
+With the acceleration and fuel consumption all figured out, we’re ready to
+apply those changes over time. We’ll write a function which takes the rocket at
+a particular time, and returns a version of it dt seconds later.
+
+```clojure
+(defn step
+  [craft dt]
+  (assoc craft
+         ; Time advances by dt seconds
+         :t         (+ dt (:t craft))
+         ; We burn some fuel
+         :fuel-mass (- (:fuel-mass craft) (* dt (fuel-rate craft)))
+         ; Our position changes based on our velocity
+         :position  (merge-with + (:position craft)
+                                  (scale dt (:velocity craft)))
+         ; And our velocity changes based on our acceleration
+         :velocity  (merge-with + (:velocity craft)
+                                  (scale dt (acceleration craft)))))
+```
+
+OK. Let’s save the rocket.clj file, load that code into the REPL, and fire it
+up.
+
+```clojure
+user=> (use 'scratch.rocket :reload)
+nil
+```
+
+use is like a shorthand for (:require ... :refer :all). We’re passing :reload
+because we want the REPL to re-read the file. Notice that in ns declarations,
+the namespace name scratch.rocket is unquoted–but when we call use or require
+at the repl, we quote the namespace name.
+
+```clojure
+user=> (atlas-v)
+{:dry-mass 50050, :fuel-mass 284450, :time 0, :isp 3050, :max-fuel-rate 284450/253, :max-thrust 4152000.0}
+```
+
+#### Launch
+
+Let’s prepare the rocket. We’ll use pprint to print it in a more readable form.
+
+```clojure
+user=> (-> (atlas-v) prepare pprint)
+{:velocity {:x 0, :y 463.8312116386399, :z 0},
+ :position {:x 6378137, :y 0, :z 0},
+ :dry-mass 50050,
+ :fuel-mass 284450,
+ :time 0,
+ :isp 3050,
+ :max-fuel-rate 284450/253,
+ :max-thrust 4152000.0}
+```
+
+Great; there it is on the launchpad. Wow, even “standing still”, it’s moving at
+463 meters/sec because of the earth’s rotation! That means you and I are flying
+through space at almost half a kilometer every second! Let’s step forward one
+second in time.
+
+```clojure
+user=> (-> (atlas-v) prepare (step 1) pprint)
+
+NullPointerException   clojure.lang.Numbers.ops (Numbers.java:942)
+```
+
+In evaluating this expression, Clojure reached a point where it could not
+continue, and aborted execution. We call this error an exception, and the
+process of aborting throwing the exception. Clojure backs up to the function
+which called the function that threw, then the function which called that
+function, and so on, all the way to the top-level expression. The REPL finally
+intercepts the exception, prints an error to the console, and stashes the
+exception object in a special variable *e.
+
+In this case, we know that the exception in question was a
+NullPointerException, which occurs when a function received nil unexpectedly.
+This one came from clojure.lang.Numbers.ops, which suggests some sort of math
+was involved. Let’s use pst to find out where it came from.
+
+```clojure
+user=> (pst *e)
+NullPointerException 
+    clojure.lang.Numbers.ops (Numbers.java:942)
+    clojure.lang.Numbers.add (Numbers.java:126)
+    scratch.rocket/step (rocket.clj:125)
+    user/eval1478 (NO_SOURCE_FILE:1)
+    clojure.lang.Compiler.eval (Compiler.java:6619)
+    clojure.lang.Compiler.eval (Compiler.java:6582)
+    clojure.core/eval (core.clj:2852)
+    clojure.main/repl/read-eval-print--6588/fn--6591 (main.clj:259)
+    clojure.main/repl/read-eval-print--6588 (main.clj:259)
+    clojure.main/repl/fn--6597 (main.clj:277)
+    clojure.main/repl (main.clj:277)
+    clojure.tools.nrepl.middleware.interruptible-eval/evaluate/fn--589 (interruptible_eval.clj:56)
+```
+
+This is called a stack trace: the stack is the context of the program at each
+function call. It traces the path the computer took in evaluating the
+expression, from the bottom to the top. At the bottom is the REPL, and Clojure
+compiler. Our code begins at user/eval1478–that’s the compiler’s name for the
+expression we just typed. That function called scratch.rocket/step, which in
+turn called Numbers.add, and that called Numbers.ops. Let’s start by looking at
+the last function we wrote before calling into Clojure’s standard library: the
+step function, in rocket.clj, on line 125.
+
+```clojure
+123  (assoc craft
+124         ; Time advances by dt seconds
+125         :t         (+ dt (:t craft))
+```
+
+Ah; we named the time field :time earlier, not :t. Let’s replace :t with :time,
+save the file, and reload.
+
+```clojure
+user=> (use 'scratch.rocket :reload)
+nil
+user=> (-> (atlas-v) prepare (step 1) pprint)
+{:velocity {:x 0.45154055666826215, :y 463.8312116386399, :z -9.8},
+ :position {:x 6378137, :y 463.8312116386399, :z 0},
+ :dry-mass 50050,
+ :fuel-mass 71681400/253,
+ :time 1,
+ :isp 3050,
+ :max-fuel-rate 284450/253,
+ :max-thrust 4152000.0}
+```
+
+Look at that! Our position is unchanged (because our velocity was zero), but
+our velocity has shifted. We’re now moving… wait, -9.8 meters per second south?
+That can’t be right. Gravity points down, not sideways. Something must be wrong
+with our spherical coordinate system. Let’s write a test in
+test/scratch/rocket_test.clj to explore.
+
+```clojure
+(ns scratch.rocket-test
+  (:require [clojure.test :refer :all]
+            [scratch.rocket :refer :all]))
+
+(deftest spherical-coordinate-test
+  (let [pos {:x 1 :y 2 :z 3}]
+    (testing "roundtrip"
+      (is (= pos (-> pos cartesian->spherical spherical->cartesian))))))
+aphyr@waterhouse:~/scratch$ lein test
+
+lein test scratch.core-test
+
+lein test scratch.rocket-test
+
+lein test :only scratch.rocket-test/spherical-coordinate-test
+
+FAIL in (spherical-coordinate-test) (rocket_test.clj:8)
+roundtrip
+expected: (= pos (-> pos cartesian->spherical spherical->cartesian))
+  actual: (not (= {:z 3, :y 2, :x 1} {:x 1.0, :y 1.9999999999999996, :z 1.6733200530681513}))
+
+Ran 2 tests containing 4 assertions.
+1 failures, 0 errors.
+Tests failed.
+```
+
+Definitely wrong. Looks like something to do with the z coordinate, since x and
+y look OK. Let’s try testing a point on the north pole:
+
+```clojure
+(deftest spherical-coordinate-test
+  (testing "spherical->cartesian"
+    (is (= (spherical->cartesian {:r 2
+                                  :phi 0
+                                  :theta 0})
+           {:x 0.0 :y 0.0 :z 2.0})))
+
+  (testing "roundtrip"
+    (let [pos {:x 1.0 :y 2.0 :z 3.0}]
+      (is (= pos (-> pos cartesian->spherical spherical->cartesian))))))
+That checks out OK. Let’s try some values in the repl.
+
+user=> (cartesian->spherical {:x 0.00001 :y 0.00001 :z 2.0})
+{:r 2.00000000005, :theta 7.071068104411588E-6, :phi 0.7853981633974483}
+user=> (cartesian->spherical {:x 1 :y 2 :z 3})
+{:r 3.7416573867739413, :theta 0.6405223126794245, :phi 1.1071487177940904}
+user=> (spherical->cartesian (cartesian->spherical {:x 1 :y 2 :z 3}))
+{:x 1.0, :y 1.9999999999999996, :z 1.6733200530681513}
+user=> (cartesian->spherical {:x 1 :y 2 :z 0})
+{:r 2.23606797749979, :theta 1.5707963267948966, :phi 1.1071487177940904}
+user=> (cartesian->spherical {:x 1 :y 1 :z 0})
+{:r 1.4142135623730951, :theta 1.5707963267948966, :phi 0.7853981633974483}
+```
+
+Oh, wait, that looks odd. {:x 1 :y 1 :z 0} is on the equator: phi–the angle
+from the pole–should be pi/2 or ~1.57, and theta–the angle around the
+equator–should be pi/4 or 0.78. Those coordinates are reversed! Double-checking
+our formulas with Wolfram MathWorld shows that we mixed up phi and theta! Let’s
+redefine cartesian->polar correctly.
+
+```clojure
+(defn cartesian->spherical
+  "Converts a map of Cartesian coordinates :x, :y, and :z to spherical
+  coordinates :r, :theta, and :phi."
+  [c]
+  (let [r (Math/sqrt (+ (Math/pow (:x c) 2)
+                        (Math/pow (:y c) 2)
+                        (Math/pow (:z c) 2)))]
+    {:r     r
+     :phi   (Math/acos (/ (:z c) r))
+     :theta (Math/atan (/ (:y c) (:x c)))}))
+aphyr@waterhouse:~/scratch$ lein test
+
+lein test scratch.core-test
+
+lein test scratch.rocket-test
+
+Ran 2 tests containing 5 assertions.
+0 failures, 0 errors.
+```
+
+Great. Now let’s check the rocket trajectory again.
+
+```clojure
+user=> (-> (atlas-v) prepare (step 1) pprint)
+{:velocity
+ {:x 0.45154055666826204,
+  :y 463.8312116386399,
+  :z -6.000769315822031E-16},
+ :position {:x 6378137, :y 463.8312116386399, :z 0},
+ :dry-mass 50050,
+ :fuel-mass 71681400/253,
+ :time 1,
+ :isp 3050,
+ :max-fuel-rate 284450/253,
+ :max-thrust 4152000.0}
+```
+
+This time, our velocity is increasing in the +x direction, at half a meter per
+second. We have liftoff!
+
+#### Flight
+
+We have a function that can move the rocket forward by one small step of time,
+but we’d like to understand the rocket’s trajectory as a whole; to see all
+positions it will take. We’ll use iterate to construct a lazy, infinite
+sequence of rocket states, each one constructed by stepping forward from the
+last.
+
+```clojure
+(defn trajectory
+  [dt craft]
+  "Returns all future states of the craft, at dt-second intervals."
+  (iterate #(step % 1) craft))
+user=> (->> (atlas-v) prepare (trajectory 1) (take 3) pprint)
+({:velocity {:x 0, :y 463.8312116386399, :z 0},
+  :position {:x 6378137, :y 0, :z 0},
+  :dry-mass 50050,
+  :fuel-mass 284450,
+  :time 0,
+  :isp 3050,
+  :max-fuel-rate 284450/253,
+  :max-thrust 4152000.0}
+ {:velocity
+  {:x 0.45154055666826204,
+   :y 463.8312116386399,
+   :z -6.000769315822031E-16},
+  :position {:x 6378137, :y 463.8312116386399, :z 0},
+  :dry-mass 50050,
+  :fuel-mass 71681400/253,
+  :time 1,
+  :isp 3050,
+  :max-fuel-rate 284450/253,
+  :max-thrust 4152000.0}
+ {:velocity
+  {:x 0.9376544222659078,
+   :y 463.83049896253056,
+   :z -1.200153863164406E-15},
+  :position
+  {:x 6378137.451540557,
+   :y 927.6624232772798,
+   :z -6.000769315822031E-16},
+  :dry-mass 50050,
+  :fuel-mass 71396950/253,
+  :time 2,
+  :isp 3050,
+  :max-fuel-rate 284450/253,
+  :max-thrust 4152000.0})
+```
+
+Notice that each map is like a frame of a movie, playing at one frame per
+second. We can make the simulation more or less accurate by raising or lowering
+the framerate–adjusting the parameter fed to trajectory. For now, though, we’ll
+stick with one-second intervals.
+
+How high above the surface is the rocket?
+
+```clojure
+(defn altitude
+  "The height above the surface of the equator, in meters."
+  [craft]
+  (-> craft
+      :position
+      cartesian->spherical
+      :r
+      (- earth-equatorial-radius)))
+```
+
+Now we can explore the rocket’s path as a series of altitudes over time:
+
+```clojure
+user=> (->> (atlas-v) prepare (trajectory 1) (map altitude) (take 10) pprint)
+(0.0
+ 0.016865378245711327
+ 0.519002066925168
+ 1.540983198210597
+ 3.117615718394518
+ 5.283942770212889
+ 8.075246102176607
+ 11.52704851794988
+ 15.675116359256208
+ 20.555462017655373)
+```
+
+The million dollar question, though, is whether the rocket breaks orbit.
+
+```clojure
+(defn above-ground?
+  "Is the craft at or above the surface?"
+  [craft]
+  (<= 0 (altitude craft)))
+
+(defn flight
+  "The above-ground portion of a trajectory."
+  [trajectory]
+  (take-while above-ground? trajectory))
+
+(defn crashed?
+  "Does this trajectory crash into the surface before 100 hours are up?"
+  [trajectory]
+  (let [time-limit (* 100 3600)] ; 1 hour
+    (not (every? above-ground?
+                 (take-while #(<= (:time %) time-limit) trajectory)))))
+
+(defn crash-time
+  "Given a trajectory, returns the time the rocket impacted the ground."
+  [trajectory]
+  (:time (last (flight trajectory))))
+
+(defn apoapsis
+  "The highest altitude achieved during a trajectory."
+  [trajectory]
+  (apply max (map altitude trajectory)))
+
+(defn apoapsis-time
+  "The time of apoapsis"
+  [trajectory]
+  (:time (apply max-key altitude (flight trajectory))))
+```
+
+If the rocket goes below ground, we know it crashed. If the rocket stays in
+orbit, the trajectory will never end. That makes it a bit tricky to tell
+whether the rocket is in a stable orbit or not, because we can’t ask about
+every element, or the last element, of an infinite sequence: it’ll take
+infinite time to evaluate. Instead, we’ll assume that the rocket should crash
+within the first, say, 100 hours; if it makes it past that point, we’ll assume
+it made orbit successfully. With these functions in hand, we’ll write a test in
+test/scratch/rocket_test.clj to see whether or not the launch is successful:
+
+```clojure
+(deftest makes-orbit
+  (let [trajectory (->> (atlas-v)
+                        prepare
+                        (trajectory 1))]
+
+    (when (crashed? trajectory)
+      (println "Crashed at" (crash-time trajectory) "seconds")
+      (println "Maximum altitude" (apoapsis trajectory)
+               "meters at"        (apoapsis-time trajectory) "seconds"))
+
+    ; Assert that the rocket eventually made it to orbit.
+    (is (not (crashed? trajectory)))))
+aphyr@waterhouse:~/scratch$ lein test scratch.rocket-test
+
+lein test scratch.rocket-test
+Crashed at 982 seconds
+```
+
+Maximum altitude 753838.039645385 meters at 532 seconds
+
+```clojure
+lein test :only scratch.rocket-test/makes-orbit
+
+FAIL in (makes-orbit) (rocket_test.clj:26)
+expected: (not (crashed? trajectory))
+  actual: (not (not true))
+
+Ran 2 tests containing 3 assertions.
+1 failures, 0 errors.
+Tests failed.
+```
+
+We made it to an altitude of 750 kilometers, and crashed 982 seconds after
+launch. We’re gonna need a bigger boat.
+
+#### Stage II
+
+The Atlas V isn’t big enough to make it into orbit on its own. It carries a
+second stage, the Centaur), which is much smaller and uses more efficient
+engines.
+
+```clojure
+(defn centaur
+  "The upper rocket stage.
+  http://en.wikipedia.org/wiki/Centaur_(rocket_stage)
+  http://www.astronautix.com/stages/cenaurde.htm"
+  []
+  {:dry-mass  2361
+   :fuel-mass 13897
+   :isp       4354
+   :max-fuel-rate (/ 13897 470)})
+```
+
+The Centaur lives inside the Atlas V main stage. We’ll re-write atlas-v to take
+an argument: its next stage.
+
+```clojure
+(defn atlas-v
+  "The full launch vehicle. http://en.wikipedia.org/wiki/Atlas_V"
+  [next-stage]
+  {:dry-mass  50050
+   :fuel-mass 284450
+   :isp 3050
+   :max-fuel-rate (/ 284450 253)
+   :next-stage next-stage})
+```
+
+Now, in our tests, we’ll construct the rocket like so:
+
+```clojure
+  (let [trajectory (->> (atlas-v (centaur))
+                        prepare
+                        (trajectory 1))]
+```
+
+When we exhaust the fuel reserves of the primary stage, we’ll de-couple the
+main booster from the Centaur. In terms of our simulation, the Atlas V will be
+replaced by its next stage, the Centaur. We’ll write a function stage which
+separates the vehicles when ready:
+
+```clojure
+(defn stage
+  "When fuel reserves are exhausted, separate stages. Otherwise, return craft
+  unchanged."
+  [craft]
+  (cond
+    ; Still fuel left
+    (pos? (:fuel-mass craft))
+    craft
+
+    ; No remaining stages
+    (nil? (:next-stage craft))
+    craft
+
+    ; Stage!
+    :else
+    (merge (:next-stage craft)
+           (select-keys craft [:time :position :velocity]))))
+```
+
+We’re using cond to handle three distinct cases: where there’s fuel remaining
+in the craft, where there is no stage to separate, and when we’re ready for
+stage separation. Separation is easy: we simply return the next stage of the
+current craft, with the current craft’s time, position, and velocity merged in.
+
+Finally, we’ll have to update our step function to take into account the
+possibility of stage separation.
+
+```clojure
+(defn step
+  [craft dt]
+  (let [craft (stage craft)]
+    (assoc craft
+           ; Time advances by dt seconds
+           :time      (+ dt (:time craft))
+           ; We burn some fuel
+           :fuel-mass (- (:fuel-mass craft) (* dt (fuel-rate craft)))
+           ; Our position changes based on our velocity
+           :position  (merge-with + (:position craft)
+                                  (scale dt (:velocity craft)))
+           ; And our velocity changes based on our acceleration
+           :velocity  (merge-with + (:velocity craft)
+                                  (scale dt (acceleration craft))))))
+```
+
+Same as before, only now we call stage prior to the physics simulation. Let’s
+try a launch.
+
+```clojure
+aphyr@waterhouse:~/scratch$ lein test scratch.rocket-test
+
+lein test scratch.rocket-test
+Crashed at 2415 seconds
+```
+
+Maximum altitude 4598444.289945109 meters at 1446 seconds
+
+```clojure
+lein test :only scratch.rocket-test/makes-orbit
+
+FAIL in (makes-orbit) (rocket_test.clj:27)
+expected: (not (crashed? trajectory))
+  actual: (not (not true))
+
+Ran 2 tests containing 3 assertions.
+1 failures, 0 errors.
+Tests failed.
+```
+
+Still crashed–but we increased our apoapsis from 750 kilometers to 4,598
+kilometers. That’s plenty high, but we’re still not making orbit. Why? Because
+we’re going straight up, then straight back down. To orbit, we need to move
+sideways, around the earth.
+
+#### Orbital insertion
+
+Our spacecraft is shooting upwards, but in order to remain in orbit around the
+earth, it has to execute a second burn: an orbital injection maneuver. That
+injection maneuver is also called a circularization burn because it turns the
+orbit from an ascending parabola into a circle (or something roughly like it).
+We don’t need to be precise about circularization–any trajectory that doesn’t
+hit the planet will suffice. All we have to do is burn towards the horizon,
+once we get high enough.
+
+To do that, we’ll need to enhance the rocket’s control software. We assumed
+that the rocket would always thrust in the +x direction; but now we’ll need to
+thrust in multiple directions. We’ll break up the engine force into two parts:
+thrust (how hard the rocket motor pushes) and orientation (which determines the
+direction the rocket is pointing.)
+
+```clojure
+(defn unit-vector
+  "Scales coordinates to magnitude 1."
+  [coordinates]
+  (scale (/ (magnitude coordinates)) coordinates))
+
+(defn engine-force
+  "The force vector, each component in Newtons, due to the rocket engine."
+  [craft]
+  (scale (thrust craft) (unit-vector (orientation craft))))
+```
+
+We’re taking the orientation of the craft–some coordinates–and scaling it to be
+of length one with unit-vector. Then we’re scaling the orientation vector by
+the thrust, returning a thrust vector.
+
+As we go back and redefine parts of the program, you might see an error like
+
+```clojure
+Exception in thread "main" java.lang.RuntimeException: Unable to resolve symbol: unit-vector in this context, compiling:(scratch/rocket.clj:69:11)
+    at clojure.lang.Compiler.analyze(Compiler.java:6380)
+    at clojure.lang.Compiler.analyze(Compiler.java:6322)
+```
+
+This is a stack trace from the Clojure compiler. It indicates that in
+scratch/rocket.clj, on line 69, column 11, we used the symbol unit-vector–but
+it didn’t have a meaning at that point in the program. Perhaps unit-vector is
+defined below that line. There are two ways to solve this.
+
+Organize your functions so that the simple ones come first, and those that
+depend on them come later. Read this way, namespaces tell a story, progressing
+from smaller to bigger, more complex problems.
+
+Sometimes, ordering functions this way is impossible, or would put related
+ideas too far apart. In this case you can (declare unit-vector) near the top of
+the namespace. This tells Clojure that unit-vector isn’t defined yet, but it’ll
+come later.
+
+Now that we’ve broken up engine-force into thrust and orientation, we have to
+control the thrust properly for our two burns. We’ll start by defining the
+times for the initial ascent and circularization burn, expressed as vectors of
+start and end times, in seconds.
+
+```clojure
+(def ascent
+  "The start and end times for the ascent burn."
+  [0 3000])
+
+(def circularization
+  "The start and end times for the circularization burn."
+  [4000 1000])
+```
+
+Now we’ll change the thrust by adjusting the rate of fuel consumption. Instead
+of burning at maximum until running out of fuel, we’ll execute two distinct
+burns.
+
+```clojure
+(defn fuel-rate
+  "How fast is fuel, in kilograms/second, consumed by the craft?"
+  [craft]
+  (cond
+    ; Out of fuel
+    (<= (:fuel-mass craft) 0)
+    0
+
+    ; Ascent burn
+    (<= (first ascent) (:time craft) (last ascent))
+    (:max-fuel-rate craft)
+
+    ; Circularization burn
+    (<= (first circularization) (:time craft) (last circularization))
+    (:max-fuel-rate craft)
+
+    ; Shut down engines otherwise
+    :else 0))
+```
+
+We’re using cond to express four distinct possibilities: that we’ve run out of
+fuel, executing either of the two burns, or resting with the engines shut down.
+Because the comparison function <= takes any number of arguments and asserts
+that they occur in order, expressing intervals like “the time is between the
+first and last times in the ascent” is easy.
+
+Finally, we need to determine the direction to burn in. This one’s gonna
+require some tricky linear algebra. You don’t need to worry about the specifics
+here–the goal is to find out what direction the rocket should burn to fly
+towards the horizon, in a circle around the planet. We’re doing that by taking
+the rocket’s velocity vector, and flattening out the velocity towards or away
+from the planet. All that’s left is the direction the rocket is flying around
+the earth.
+
+```clojure
+(defn dot-product
+  "Finds the inner product of two x, y, z coordinate maps.
+  See http://en.wikipedia.org/wiki/Dot_product."
+  [c1 c2]
+  (+ (* (:x c1) (:x c2))
+     (* (:y c1) (:y c2))
+     (* (:z c1) (:z c2))))
+
+(defn projection
+  "The component of coordinate map a in the direction of coordinate map b.
+  See http://en.wikipedia.org/wiki/Vector_projection."
+  [a b]
+  (let [b (unit-vector b)]
+    (scale (dot-product a b) b)))
+
+(defn rejection
+  "The component of coordinate map a *not* in the direction of coordinate map
+  b."
+  [a b]
+  (let [a' (projection a b)]
+    {:x (- (:x a) (:x a'))
+     :y (- (:y a) (:y a'))
+     :z (- (:z a) (:z a'))}))
+```
+
+With the mathematical underpinnings ready, we’ll define the orientation control
+software:
+
+```clojure
+(defn orientation
+  "What direction is the craft pointing?"
+  [craft]
+  (cond
+    ; Initially, point along the *position* vector of the craft--that is
+    ; to say, straight up, away from the earth.
+    (<= (first ascent) (:time craft) (last ascent))
+    (:position craft)
+
+    ; During the circularization burn, we want to burn *sideways*, in the
+    ; direction of the orbit. We'll find the component of our velocity
+    ; which is aligned with our position vector (that is to say, the vertical
+    ; velocity), and subtract the vertical component. All that's left is the
+    ; *horizontal* part of our velocity.
+    (<= (first circularization) (:time craft) (last circularization))
+    (rejection (:velocity craft) (:position craft))
+
+    ; Otherwise, just point straight ahead.
+    :else (:velocity craft)))
+```
+
+For the ascent burn, we’ll push straight away from the planet. For
+circularization, we use the rejection function to find the part of the velocity
+around the planet, and thrust in that direction. By default, we’ll leave the
+rocket pointing in the direction of travel.
+
+With these changes made, the rocket should execute two burns. Let’s re-run the
+tests and see.
+
+```clojure
+aphyr@waterhouse:~/scratch$ lein test scratch.rocket-test
+
+lein test scratch.rocket-test
+
+Ran 2 tests containing 3 assertions.
+0 failures, 0 errors.
+```
+
+We finally did it! We’re rocket scientists!
+
+#### Review
+
+```clojure
+(ns scratch.rocket)
+
+;; Linear algebra for {:x 1 :y 2 :z 3} coordinate vectors.
+
+(defn map-values
+  "Applies f to every value in the map m."
+  [f m]
+  (into {}
+        (map (fn [pair]
+               [(key pair) (f (val pair))])
+             m)))
+
+(defn magnitude
+  "What's the radius of a given set of cartesian coordinates?"
+  [c]
+  ; By the Pythagorean theorem...
+  (Math/sqrt (+ (Math/pow (:x c) 2)
+                (Math/pow (:y c) 2)
+                (Math/pow (:z c) 2))))
+
+(defn scale
+  "Multiplies a map of x, y, and z coordinates by the given factor."
+  [factor coordinates]
+  (map-values (partial * factor) coordinates))
+
+(defn unit-vector
+  "Scales coordinates to magnitude 1."
+  [coordinates]
+  (scale (/ (magnitude coordinates)) coordinates))
+
+(defn dot-product
+  "Finds the inner product of two x, y, z coordinate maps. See
+  http://en.wikipedia.org/wiki/Dot_product"
+  [c1 c2]
+  (+ (* (:x c1) (:x c2))
+     (* (:y c1) (:y c2))
+     (* (:z c1) (:z c2))))
+
+(defn projection
+  "The component of coordinate map a in the direction of coordinate map b.
+  See http://en.wikipedia.org/wiki/Vector_projection."
+  [a b]
+  (let [b (unit-vector b)]
+    (scale (dot-product a b) b)))
+
+(defn rejection
+  "The component of coordinate map a *not* in the direction of coordinate map
+  b."
+  [a b]
+  (let [a' (projection a b)]
+    {:x (- (:x a) (:x a'))
+     :y (- (:y a) (:y a'))
+     :z (- (:z a) (:z a'))}))
+
+;; Coordinate conversion
+
+(defn cartesian->spherical
+  "Converts a map of Cartesian coordinates :x, :y, and :z to spherical
+  coordinates :r, :theta, and :phi."
+  [c]
+  (let [r (magnitude c)]
+    {:r     r
+     :phi   (Math/acos (/ (:z c) r))
+     :theta (Math/atan (/ (:y c) (:x c)))}))
+
+(defn spherical->cartesian
+  "Converts spherical to Cartesian coordinates."
+  [c]
+  {:x (* (:r c) (Math/cos (:theta c)) (Math/sin (:phi c)))
+   :y (* (:r c) (Math/sin (:theta c)) (Math/sin (:phi c)))
+   :z (* (:r c) (Math/cos (:phi c)))})
+
+;; The earth
+
+(def earth-equatorial-radius
+  "Radius of the earth, in meters"
+  6378137)
+
+(def earth-day
+  "Length of an earth day, in seconds."
+  86400)
+
+(def earth-equatorial-speed
+  "How fast points on the equator move, relative to the center of the earth, in
+  meters/sec."
+  (/ (* 2 Math/PI earth-equatorial-radius)
+     earth-day))
+
+(def g "Acceleration of gravity in meters/s^2" -9.8)
+
+(def initial-space-center
+  "The initial position and velocity of the launch facility"
+  {:time     0
+   :position {:x earth-equatorial-radius
+              :y 0
+              :z 0}
+   :velocity {:x 0
+              :y earth-equatorial-speed
+              :z 0}})
+
+
+;; Craft
+
+(defn centaur
+  "The upper rocket stage.
+  http://en.wikipedia.org/wiki/Centaur_(rocket_stage)
+  http://www.astronautix.com/stages/cenaurde.htm"
+  []
+  {:dry-mass  2361
+   :fuel-mass 13897
+   :isp       4354
+   :max-fuel-rate (/ 13897 470)})
+
+(defn atlas-v
+  "The full launch vehicle. http://en.wikipedia.org/wiki/Atlas_V"
+  [next-stage]
+  {:dry-mass  50050
+   :fuel-mass 284450
+   :isp 3050
+   :max-fuel-rate (/ 284450 253)
+   :next-stage next-stage})
+
+;; Flight control
+
+(def ascent
+  "The start and end times for the ascent burn."
+  [0 300])
+
+(def circularization
+  "The start and end times for the circularization burn."
+  [400 1000])
+
+(defn orientation
+  "What direction is the craft pointing?"
+  [craft]
+  (cond
+    ; Initially, point along the *position* vector of the craft--that is
+    ; to say, straight up, away from the earth.
+    (<= (first ascent) (:time craft) (last ascent))
+    (:position craft)
+
+    ; During the circularization burn, we want to burn *sideways*, in the
+    ; direction of the orbit. We'll find the component of our velocity
+    ; which is aligned with our position vector (that is to say, the vertical
+    ; velocity), and subtract the vertical component. All that's left is the
+    ; *horizontal* part of our velocity.
+    (<= (first circularization) (:time craft) (last circularization))
+    (rejection (:velocity craft) (:position craft))
+
+    ; Otherwise, just point straight ahead.
+    :else (:velocity craft)))
+
+(defn fuel-rate
+  "How fast is fuel, in kilograms/second, consumed by the craft?"
+  [craft]
+  (cond
+    ; Out of fuel
+    (<= (:fuel-mass craft) 0)
+    0
+
+    ; Ascent burn
+    (<= (first ascent) (:time craft) (last ascent))
+    (:max-fuel-rate craft)
+
+    ; Circularization burn
+    (<= (first circularization) (:time craft) (last circularization))
+    (:max-fuel-rate craft)
+
+    ; Shut down engines otherwise
+    :else 0))
+
+(defn stage
+  "When fuel reserves are exhausted, separate stages. Otherwise, return craft
+  unchanged."
+  [craft]
+  (cond
+    ; Still fuel left
+    (pos? (:fuel-mass craft))
+    craft
+
+    ; No remaining stages
+    (nil? (:next-stage craft))
+    craft
+
+    ; Stage!
+    :else
+    (merge (:next-stage craft)
+           (select-keys craft [:time :position :velocity]))))
+
+;; Dynamics
+
+(defn thrust
+  "How much force, in newtons, does the craft's rocket engines exert?"
+  [craft]
+  (* (fuel-rate craft) (:isp craft)))
+
+(defn mass
+  "The total mass of a craft."
+  [craft]
+  (+ (:dry-mass craft) (:fuel-mass craft)))
+
+(defn gravity-force
+  "The force vector, each component in Newtons, due to gravity."
+  [craft]
+  ; Since force is mass times acceleration...
+  (let [total-force (* g (mass craft))]
+    (-> craft
+        ; Now we'll take the craft's position
+        :position
+        ; in spherical coordinates,
+        cartesian->spherical
+        ; replace the radius with the gravitational force...
+        (assoc :r total-force)
+        ; and transform back to Cartesian-land
+        spherical->cartesian)))
+
+(declare altitude)
+
+(defn engine-force
+  "The force vector, each component in Newtons, due to the rocket engine."
+  [craft]
+;  Debugging; useful for working through trajectories in detail.
+;  (println craft)
+;  (println "t   " (:time craft) "alt" (altitude craft) "thrust" (thrust craft))
+;  (println "fuel" (:fuel-mass craft))
+;  (println "vel " (:velocity craft))
+;  (println "ori " (unit-vector (orientation craft)))
+  (scale (thrust craft) (unit-vector (orientation craft))))
+
+(defn total-force
+  "Total force on a craft."
+  [craft]
+  (merge-with + (engine-force craft)
+              (gravity-force craft)))
+
+(defn acceleration
+  "Total acceleration of a craft."
+  [craft]
+  (let [m (mass craft)]
+    (scale (/ m) (total-force craft))))
+
+(defn step
+  [craft dt]
+  (let [craft (stage craft)]
+    (assoc craft
+           ; Time advances by dt seconds
+           :time      (+ dt (:time craft))
+           ; We burn some fuel
+           :fuel-mass (- (:fuel-mass craft) (* dt (fuel-rate craft)))
+           ; Our position changes based on our velocity
+           :position  (merge-with + (:position craft)
+                                  (scale dt (:velocity craft)))
+           ; And our velocity changes based on our acceleration
+           :velocity  (merge-with + (:velocity craft)
+                                  (scale dt (acceleration craft))))))
+
+;; Launch and flight
+
+(defn prepare
+  "Prepares a craft for launch from an equatorial space center."
+  [craft]
+  (merge craft initial-space-center))
+
+(defn trajectory
+  [dt craft]
+  "Returns all future states of the craft, at dt-second intervals."
+  (iterate #(step % 1) craft))
+
+;; Analyzing trajectories
+
+(defn altitude
+  "The height above the surface of the equator, in meters."
+  [craft]
+  (-> craft
+      :position
+      cartesian->spherical
+      :r
+      (- earth-equatorial-radius)))
+
+(defn above-ground?
+  "Is the craft at or above the surface?"
+  [craft]
+  (<= 0 (altitude craft)))
+
+(defn flight
+  "The above-ground portion of a trajectory."
+  [trajectory]
+  (take-while above-ground? trajectory))
+
+(defn crashed?
+  "Does this trajectory crash into the surface before 10 hours are up?"
+  [trajectory]
+  (let [time-limit (* 10 3600)] ; 10 hours
+    (not (every? above-ground?
+                 (take-while #(<= (:time %) time-limit) trajectory)))))
+
+(defn crash-time
+  "Given a trajectory, returns the time the rocket impacted the ground."
+  [trajectory]
+  (:time (last (flight trajectory))))
+
+(defn apoapsis
+  "The highest altitude achieved during a trajectory."
+  [trajectory]
+  (apply max (map altitude (flight trajectory))))
+
+(defn apoapsis-time
+  "The time of apoapsis"
+  [trajectory]
+  (:time (apply max-key altitude (flight trajectory))))
+```
+
+As written here, our first non-trivial program tells a story–though a different
+one than the process of exploration and refinement that brought the rocket to
+orbit. It builds from small, abstract ideas: linear algebra and coordinates;
+physical constants describing the universe for the simulation; and the basic
+outline of the spacecraft. Then we define the software controlling the rocket;
+the times for the burns, how much to thrust, in what direction, and when to
+separate stages. Using those control functions, we build a physics engine
+including gravity and thrust forces, and use Newton’s second law to build a
+basic Euler Method solver. Finally, we analyze the trajectories the solver
+produces to answer key questions: how high, how long, and did it explode?
+
+We used Clojure’s immutable data structures–mostly maps–to represent the state
+of the universe, and defined pure functions to interpret those states and
+construct new ones. Using iterate, we projected a single state forward into an
+infinite timeline of the future–evaluated as demanded by the analysis
+functions. Though we pay a performance penalty, immutable data structures, pure
+functions, and lazy evaluation make simulating complex systems easier to reason
+about.
+
+Had we written this simulation in a different language, different techniques
+might have come into play. In Java, C++, or Ruby, we would have defined a
+hierarchy of datatypes called classes, each one representing a small piece of
+state. We might define a Craft type, and created subtypes Atlas and Centaur.
+We’d create a Coordinate type, subdivided into Cartesian and Spherical, and so
+on. The types add complexity and rigidity, but also prevent mis-spellings, and
+can prevent us from interpreting, say, coordinates as craft or vice-versa.
+
+To move the system forward in a language emphasizing mutable data structures,
+we would have updated the time and coordinates of a single craft in-place. This
+introduces additional complexity, because many of the changes we made depended
+on the current values of the craft. To ensure the correct ordering of
+calculations, we’d scatter temporary variables and explicit copies throughout
+the code, ensuring that functions didn’t see inconsistent pictures of the craft
+state. The mutable approach would likely be faster, but would still demand some
+copying of data, and sacrifice clarity.
+
+More imperative languages place less emphasis on laziness, and make it harder
+to express ideas like map and take. We might have simulated the trajectory for
+some fixed time, constructing a history of all the intermediate results we
+needed, then analyzed it by moving explicitly from slot to slot in that
+history, checking if the craft had crashed, and so on.
+
+Across all these languages, though, some ideas remain the same. We solve big
+problems by breaking them up into smaller ones. We use data structures to
+represent the state of the system, and functions to alter that state. Comments
+and docstrings clarify the story of the code, making it readable to others.
+Tests ensure the software is correct, and allow us to work piecewise towards a
+solution.
+
+#### Exercises
+
+We know the spacecraft reached orbit, but we have no idea what that orbit looks
+like. Since the trajectory is infinite in length, we can’t ask about the entire
+history using max–but we know that all orbits have a high and low point. At the
+highest point, the difference between successive altitudes changes from
+increasing to decreasing, and at the lowest point, the difference between
+successive altitudes changes from decreasing to increasing. Using this
+technique, refine the apoapsis function to find the highest point using that
+inflection in altitudes–and write a corresponding periapsis function that finds
+the lowest point in the orbit. Display both periapsis and apoapsis in the test
+suite.
+
+We assumed the force of gravity resulted in a constant 9.8 meter/second/second
+acceleration towards the earth, but in the real world, gravity falls off with
+the inverse square law. Using the mass of the earth, mass of the spacecraft,
+and Newton’s constant, refine the gravitational force used in this simulation
+to take Newton’s law into account. How does this affect the apoapsis?
+
+We ignored the atmosphere, which exerts drag on the craft as it moves through
+the air. Write a basic air-density function which falls off with altitude. Make
+some educated guesses as to how much drag a real rocket experiences, and assume
+that the drag force is proportional to the square of the rocket’s velocity. Can
+your rocket still reach orbit?
+
+Notice that the periapsis and apoapsis of the rocket are different. By
+executing the circularization burn carefully, can you make them the
+same–achieving a perfectly circular orbit? One way to do this is to pick an
+orbital altitude and velocity of a known satellite–say, the International Space
+Station–and write the control software to match that velocity at that altitude.
 
 ### Debugging
 
