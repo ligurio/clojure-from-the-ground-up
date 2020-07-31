@@ -1,7 +1,7 @@
 MAKRDOWN_FILES += README.md
 PANDOC = pandoc
 PANDOC_OPT = -s --toc-depth=4 --toc -c epub.css title.txt $(MAKRDOWN_FILES)
-NAME = clojure-from-the-ground-up
+NAME = Kyle_Kingsbury_Clojure_From_The_Ground_Up
 
 all: $(NAME).epub $(NAME).html
 
