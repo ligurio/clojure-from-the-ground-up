@@ -1,6 +1,6 @@
-## Clojure from the ground up
+# Clojure from the ground up
 
-### Welcome
+## Welcome
 
 This guide aims to introduce newcomers and experienced programmers alike to the
 beauty of functional programming, starting with the simplest building blocks of
@@ -8,7 +8,7 @@ software. You’ll need a computer, basic proficiency in the command line, a tex
 editor, and an internet connection. By the end of this series, you’ll have a
 thorough command of the Clojure programming language.
 
-#### Who is this guide for?
+### Who is this guide for?
 
 Science, technology, engineering, and mathematics are deeply rewarding fields,
 yet few women enter STEM as a career path. Still more are discouraged by a
@@ -72,7 +72,7 @@ we’re gonna do it with everyone on board.
 
 No matter who you are or who people think you are, this guide is for you.
 
-#### Why Clojure?
+### Why Clojure?
 
 This book is about how to program. We’ll be learning in Clojure, which is a
 modern dialect of a very old family of computer languages, called Lisp. You’ll
@@ -113,7 +113,7 @@ call out these constraints and shortcomings as we proceed through the text.
 
 With that context out of the way, let’s get started by installing Clojure!
 
-#### Getting set up
+### Getting set up
 
 First, you’ll need a Java Virtual Machine, or JVM, and its associated
 development tools, called the JDK. This is the software which runs a Clojure
@@ -177,7 +177,7 @@ cd scratch
 lein repl
 ```
 
-#### The structure of programs
+### The structure of programs
 
 When you type `lein repl` at the terminal, you’ll see something like this:
 
@@ -406,7 +406,7 @@ basis for almost all computer languages. Ruby, Javascript, C, Haskell; all
 languages express the text of their programs in different ways, but internally
 all construct a tree of expressions. Lisp simply makes it explicit.
 
-#### Review
+### Review
 
 We started by learning a few basic nouns: numbers like 5, strings like "cat",
 and symbols like inc and +. We saw how quoting makes the difference between an
@@ -419,12 +419,12 @@ With these basic elements of syntax in place, it’s time to expand our
 vocabulary with new verbs and nouns; learning to represent more complex values
 and transform them in different ways.
 
-### Basic types
+## Basic types
 
 We’ve learned the basics of Clojure’s syntax and evaluation model. Now we’ll
 take a tour of the basic nouns in the language.
 
-#### Types
+### Types
 
 We’ve seen a few different values already–for instance, nil, true, false, 1,
 2.34, and "meow". Clearly all these things are different values, but some of
@@ -469,7 +469,7 @@ We’ll learn more about the formal relationships between types later, but for
 now, keep this in the back of your head. It’ll start to hook in to other
 concepts later.
 
-#### Integers
+### Integers
 
 Let’s find the type of the number 3:
 
@@ -557,7 +557,7 @@ user=> Byte/MAX_VALUE
 127
 ```
 
-#### Fractional numbers
+### Fractional numbers
 
 To represent numbers between integers, we often use floating-point numbers,
 which can represent small numbers with fine precision, and large numbers with
@@ -587,7 +587,7 @@ user=> (type 1/3)
 clojure.lang.Ratio
 ```
 
-#### Mathematical operations
+### Mathematical operations
 
 The exact behavior of mathematical operations in Clojure depends on their
 types. In general, though, Clojure aims to preserve information. Adding two
@@ -722,7 +722,7 @@ user=> (= 2 2 3)
 false
 ```
 
-#### Strings
+### Strings
 
 We saw that strings are text, surrounded by double quotes, like "foo". Strings
 in Clojure are, like Longs, Doubles, and company, backed by a Java type:
@@ -789,7 +789,7 @@ languages, you can use any guide online to learn more. It’s not something you
 have to master right away; just learn specific tricks as you find you need
 them. For a deeper guide, try Fitzgerald’s Introducing Regular Expressions.
 
-#### Booleans and logic
+### Booleans and logic
 
 Everything in Clojure has a sort of charge, a truth value, sometimes called
 “truthiness”. true is positive and false is negative. nil is negative, too.
@@ -855,7 +855,7 @@ We’ll learn more about Boolean logic when we start talking about control flow;
 the way we alter evaluation of a program and express ideas like “if I’m a cat,
 then meow incessantly”.
 
-#### Symbols
+### Symbols
 
 We saw symbols in the previous chapter; they’re bare strings of characters,
 like foo or +.
@@ -893,7 +893,7 @@ The job of symbols is to refer to things, to point to other values. When
 evaluating a program, symbols are looked up and replaced by their corresponding
 values. That’s not the only use of symbols, but it’s the most common.
 
-#### Keywords
+### Keywords
 
 Closely related to symbols and strings are keywords, which begin with a :.
 Keywords are like strings in that they’re made up of text, but are specifically
@@ -914,7 +914,7 @@ As labels, keywords are most useful when paired with other values in a
 collection, like a map. Keywords can also be used as verbs to look up specific
 values in other data types. We’ll learn more about keywords shortly.
 
-#### Lists
+### Lists
 
 A collection is a group of values. It’s a container which provides some
 structure, some framework, for the things that it holds. We say that a
@@ -977,9 +977,12 @@ user=> (nth (list 1 2 3) 2)
 nth gets the element of an ordered collection at a particular index. The first
 element is index 0, the second is index 1, and so on.
 
-This means that lists are well-suited for small collections, or collections which are read in linear order, but are slow when you want to get arbitrary elements from later in the list. For fast access to every element, we use a vector.
+This means that lists are well-suited for small collections, or collections
+which are read in linear order, but are slow when you want to get arbitrary
+elements from later in the list. For fast access to every element, we use a
+vector.
 
-#### Vectors
+### Vectors
 
 Vectors are surrounded by square brackets, just like lists are surrounded by
 parentheses. Because vectors aren’t evaluated like lists are, there’s no need
@@ -1015,7 +1018,8 @@ tree of elements, where each part of the tree branches into 32 smaller trees.
 Even very large vectors are only a few layers deep, which means getting to
 elements only takes a few hops.
 
-In addition to first, you’ll often want to get the remaining elements in a collection. There are two ways to do this:
+In addition to first, you’ll often want to get the remaining elements in a
+collection. There are two ways to do this:
 
 ```clojure
 user=> (rest [1 2 3])
@@ -1051,7 +1055,8 @@ user=> (count [1 2 3])
 3
 ```
 
-Because vectors are intended for looking up elements by index, we can also use them directly as verbs:
+Because vectors are intended for looking up elements by index, we can also use
+them directly as verbs:
 
 ```
 user=> ([:a :b :c] 1)
@@ -1075,7 +1080,7 @@ In almost all contexts, you can consider vectors, lists, and other sequences as
 interchangeable. They only differ in their performance characteristics, and in
 a few data-structure-specific operations.
 
-#### Sets
+### Sets
 
 Sometimes you want an unordered collection of values; especially when you plan
 to ask questions like “does the collection have the number 3 in it?” Clojure,
@@ -1147,7 +1152,7 @@ user=> (set [:a :b :c])
 #{:a :c :b}
 ```
 
-#### Maps
+### Maps
 
 The last collection on our tour is the map: a data structure which associates
 keys with values. In a dictionary, the keys are words and the definitions are
@@ -1187,7 +1192,8 @@ user=> ({"amlodipine" 12 "ibuprofen" 50} "ibuprofen")
 50
 ```
 
-And conversely, keywords can also be used as verbs, which look themselves up in maps:
+And conversely, keywords can also be used as verbs, which look themselves up in
+maps:
 
 ```clojure
 user=> (:raccoon {:weasel "queen" :raccoon "king"})
@@ -1226,7 +1232,7 @@ user=> (dissoc {:potatoes 5 :mushrooms 2} :mushrooms)
 {:potatoes 5}
 ```
 
-#### Putting it all together
+### Putting it all together
 
 All these collections and types can be combined freely. As software engineers,
 we model the world by creating a particular representation of the problem in
@@ -1291,7 +1297,7 @@ What is this type thing, exactly? What are these verbs we’ve been learning, an
 where do they come from? This is the central question of chapter three:
 functions.
 
-### Functions
+## Functions
 
 We left off last chapter with a question: what are verbs, anyway? When you
 evaluate (type :mary-poppins), what really happens?
@@ -1306,7 +1312,7 @@ on the notion of symbols as references to other values. Then we’ll learn about
 functions: Clojure’s verbs. Finally, we’ll use the Var system to explore and
 change the definitions of those functions.
 
-#### Let bindings
+### Let bindings
 
 We know that symbols are names for things, and that when evaluated, Clojure
 replaces those symbols with their corresponding values. +, for instance, is a
@@ -1323,8 +1329,11 @@ When you try to use a symbol which has no defined meaning, Clojure refuses:
 user=> cats
 
 CompilerException java.lang.RuntimeException: Unable to resolve symbol: cats in this context, compiling:(NO_SOURCE_PATH:0:0)
+```
+
 But we can define a meaning for a symbol within a specific expression, using let.
 
+```clojure
 user=> (let [cats 5] (str "I have " cats " cats."))
 "I have 5 cats."
 ```
@@ -1361,7 +1370,8 @@ user=> (let [person   "joseph"
 "joseph has 186 cats!"
 ```
 
-When multiple bindings are given, they are evaluated in order. Later bindings can use previous bindings.
+When multiple bindings are given, they are evaluated in order. Later bindings
+can use previous bindings.
 
 ```clojure
 user=> (let [cats 3
@@ -1375,7 +1385,7 @@ Clojure evaluates a let, it replaces all occurrences of those symbols in the
 rest of the let expression with their corresponding values, then evaluates the
 rest of the expression.
 
-#### Functions
+### Functions
 
 We saw in chapter one that Clojure evaluates lists by substituting some other
 value in their place:
@@ -1486,7 +1496,7 @@ name, and recombine expressions to solve large problems. In Clojure we’ll see
 one particular set of tools for composing programs, but the underlying ideas
 will transfer to many other languages.
 
-#### Vars
+### Vars
 
 We’ve used let to define a symbol within an expression, but what about the
 default meanings of +, conj, and type? Are they also let bindings? Is the whole
@@ -1569,7 +1579,7 @@ Totally redefining a Var isn’t the only option. There are safer, controlled
 ways to change the meaning of a Var within a particular part of a program,
 which we’ll explore later.
 
-#### Defining functions
+### Defining functions
 
 Armed with def, we’re ready to create our own named functions in Clojure.
 
@@ -1690,10 +1700,13 @@ saved there by defn. We can inspect metadata directly with the meta function:
 ```clojure
 (meta #'launch)
 {:arglists ([craft target-orbit]), :ns #<Namespace user>, :name launch, :column 1, :doc "Launches a spacecraft into the given orbit.", :line 1, :file "NO_SOURCE_PATH"}
-There’s some other juicy information in there, like the file the function was defined in and which line and column it started at, but that’s not particularly useful since we’re in the REPL, not a file. However, this does hint at a way to answer our motivating question: how does the type function work?
+There’s some other juicy information in there, like the file the function was
+defined in and which line and column it started at, but that’s not particularly
+useful since we’re in the REPL, not a file. However, this does hint at a way to
+answer our motivating question: how does the type function work?
 ```
 
-#### How does type work?
+### How does type work?
 
 We know that type returns the type of an object:
 
@@ -1825,7 +1838,7 @@ tools from other languages, you’ll rely on Java. The Clojure code is easy to
 explore with doc and source, but Java can be more opaque–I usually rely on the
 java source files and online documentation.
 
-#### Review
+### Review
 
 We’ve seen how let associates names with values in a particular expression, and
 how Vars allow for mutable bindings which apply universally. and whose
@@ -1849,14 +1862,14 @@ We’ll see a broad swath of those functions in Chapter 4: Sequences.
 *My thanks to Zach Tellman, Kelly Sommers, and Michael R Bernstein for reviewing
 drafts of this chapter.*
 
-### Sequences
+## Sequences
 
 In Chapter 3, we discovered functions as a way to abstract expressions; to
 rephrase a particular computation with some parts missing. We used functions to
 transform a single value. But what if we want to apply a function to more than
 one value at once?
 
-#### What about sequences?
+### What about sequences?
 
 For example, we know that (inc 2) increments the number 2. What if we wanted to
 increment every number in the vector [1 2 3], producing [2 3 4]?
@@ -1869,7 +1882,7 @@ ClassCastException clojure.lang.PersistentVector cannot be cast to java.lang.Num
 Clearly inc can only work on numbers, not on vectors. We need a different kind
 of tool.
 
-#### A direct approach
+### A direct approach
 
 Let’s think about the problem in concrete terms. We want to increment each of
 three elements: the first, second, and third. We know how to get an element
@@ -1922,7 +1935,7 @@ expressions! Down this path lies madness.
 
 Let’s back up a bit, and try a slightly smaller problem.
 
-#### Recursion
+### Recursion
 
 What if we just incremented the first number in the vector? How would that
 work? We know that first finds the first element in a sequence, and rest finds
@@ -2093,7 +2106,7 @@ user=> (inc-more [1 2 3 4 5 6 7 8 9 10 11 12])
 This is the beauty of a recursive function; folding an unbounded stream of
 computation over and over, onto itself, until only a single step remains.
 
-#### Generalizing from inc
+### Generalizing from inc
 
 We set out to increment every number in a vector, but nothing in our solution
 actually depended on inc. It just as well could have been dec, or str, or
@@ -2153,7 +2166,7 @@ the relationships between keys and values may be arbitrarily complex. The map
 function, on the other hand, usually expresses the same type of relationship,
 applied to a series of elements in fixed order.
 
-#### Building sequences
+### Building sequences
 
 Recursion can do more than just map. We can use it to expand a single value
 into a sequence of values, each related by some function. For instance:
@@ -2247,7 +2260,7 @@ user=> (take 10 (cycle [1 2 3]))
 (1 2 3 1 2 3 1 2 3 1)
 ```
 
-#### Transforming sequences
+### Transforming sequences
 
 Given a sequence, we often want to find a related sequence. map, for instance,
 applies a function to each element–but has a few more tricks up its sleeve.
@@ -2345,7 +2358,7 @@ user=> (apply str (shuffle (seq "abracadabra")))
 "acaadabrrab"
 ```
 
-#### Subsequences
+### Subsequences
 
 We’ve already seen take, which selects the first n elements. There’s also drop,
 which removes the first n elements.
@@ -2427,7 +2440,7 @@ Or separate a series of numbers into negative and positive runs:
 ((1 2 3 2 1) (-1 -2 -3 -2 -1) (1 2))
 ```
 
-#### Collapsing sequences
+### Collapsing sequences
 
 After transforming a sequence, we often want to collapse it in some way; to
 derive some smaller value. For instance, we might want the number of times each
@@ -2615,7 +2628,7 @@ true
 
 Lazy sequences also remember their contents, once evaluated, for faster access.
 
-#### Putting it all together
+### Putting it all together
 
 We’ve seen how recursion generalizes a function over one thing into a function
 over many things, and discovered a rich landscape of recursive functions over
@@ -2710,14 +2723,15 @@ What kind of arcane function is ->>?
 
 All these mysteries, and more, in Chapter 5: Macros.
 
-#### Problems
+### Problems
 
-1. Write a function to find out if a string is a palindrome–that is, if it looks the same forwards and backwards.
+1. Write a function to find out if a string is a palindrome–that is, if it
+   looks the same forwards and backwards.
 2. Find the number of ‘c’s in “abracadabra”.
 3. Write your own version of filter.
 4. Find the first 100 prime numbers: 2, 3, 5, 7, 11, 13, 17, ….
 
-### Macros
+## Macros
 
 In Chapter 1, I asserted that the grammar of Lisp is uniform: every expression
 is a list, beginning with a verb, and followed by some arguments. Evaluation
@@ -2727,7 +2741,7 @@ expression which seemed to violate these rules.
 
 Clearly, this is not the whole story.
 
-#### Macroexpansion
+### Macroexpansion
 
 There is another phase to evaluating an expression; one which takes place
 before the rules we’ve followed so far. That process is called macro-expansion.
@@ -2798,7 +2812,7 @@ expanded. eval takes an expression and evaluates it. When you type an unquoted
 expression into the REPL, Clojure macroexpands, then evaluates. Two stages–the
 first transforming code, the second transforming values.
 
-#### Across languages
+### Across languages
 
 Some languages have a metalanguage: a language for extending the language
 itself. In C, for example, macros are implemented by the C preprocessor, which
@@ -2826,7 +2840,7 @@ When people say that Lisp’s syntax is “more elegant”, or “more beautiful
 program directly as a a data structure, we make it much easier to define
 complex transformations of code itself.
 
-#### Defining new syntax
+### Defining new syntax
 
 What kind of transformations are best expressed with macros?
 
@@ -2985,7 +2999,7 @@ Otherwise, we (and here’s the recursive part) rebind or__3943__auto__ to (cool
 stone) and try again. If that fails, we fall back to evaluating (wet?
 stone)–thanks to the base case, the single-argument form of the or macro.
 
-#### Control flow
+### Control flow
 
 We’ve seen that or is a macro written in terms of the special form if–and
 because of the way the macro is structured, it does not obey the normal
@@ -3158,7 +3172,7 @@ Unlike cond and condp, case does not evaluate its tests in order. It jumps
 immediately to the matching expression. This makes case much faster when there
 are many branches to take–at the cost of reduced generality.
 
-#### Recursion
+### Recursion
 
 Previously, we defined recursive functions by having those functions call
 themselves explicitly.
@@ -3235,7 +3249,7 @@ user=> (loop [i 0
 [0 1 2 3 4 5 6 7 8 9 10]
 ```
 
-#### Laziness
+### Laziness
 
 In chapter 4 we mentioned that most of the sequences in Clojure, like map,
 filter, iterate, repeatedly, and so on, were lazy: they did not evaluate any of
@@ -3277,7 +3291,7 @@ user=> (deref x)
 9999999
 ```
 
-#### List comprehensions
+### List comprehensions
 
 Combining recursion and laziness is the list comprehension macro, for. In its
 simplest form, for works like map:
@@ -3317,7 +3331,7 @@ elements.
 Clojure includes a rich smörgåsbord of control-flow constructs; we’ll meet new
 ones throughout the book.
 
-#### The threading macros
+### The threading macros
 
 Sometimes you want to thread a computation through several expressions, like a
 chain. Object-oriented languages like Ruby or Java are well-suited to this
@@ -3372,9 +3386,12 @@ cond, condp and case, for example, express a language for branching based on
 predicates. ->, ->>, and doto express object-oriented and other
 expression-chaining languages.
 
-- core.match is a set of macros which express powerful pattern-matching and substitution languages.
-- core.logic expresses syntax for logic programming, for finding values which satisfy complex constraints.
-- core.async restructures Clojure code into asynchronous forms so they can do many things at once.
+- core.match is a set of macros which express powerful pattern-matching and
+  substitution languages.
+- core.logic expresses syntax for logic programming, for finding values which
+  satisfy complex constraints.
+- core.async restructures Clojure code into asynchronous forms so they can do
+  many things at once.
 - For those with a twisted sense of humor, Swiss Arrows extends the threading
   macros into evil–but delightfully concise!–forms.
 
@@ -3383,7 +3400,7 @@ this book. Each one shares the common pattern of simplifying code; reducing
 tangled or verbose expressions into something more concise, more meaningful,
 better suited to the problem at hand.
 
-#### When to use macros
+### When to use macros
 
 While it’s important to be aware of the purpose and behavior of the macro
 system, you don’t need to write your own macros to be productive with Clojure.
@@ -3417,7 +3434,7 @@ value is to be re-used, to prevent it being evaluated twice by accident.
 For a deeper exploration of Clojure macros in a real-world application, try
 Language Power.
 
-#### Review
+### Review
 
 In Chapter 4, deeply nested expressions led to the desire for a simpler, more
 direct expression of a chain of sequence operations. We learned that the
@@ -3433,7 +3450,7 @@ which change the outside world. We might change a var with def, or print a
 message to the screen with prn. Real languages must model a continually
 shifting universe, which leads us to Chapter Six: Side effects and state.
 
-#### Problems
+### Problems
 
 1. Using the control flow constructs we’ve learned, write a schedule function
 which, given an hour of the day, returns what you’ll be doing at that time.
@@ -3453,7 +3470,7 @@ during compilation, instead of when running the program? What might you lose?
 floating-point numbers. `(* 2452.45 100)` returns `245244.99999999997`, but (exact
 `(* 2452.45 100))` should return `245245N`.
 
-### State
+## State
 
 Most programs encompass change. People grow up, leave town, fall in love, and
 take new names. Engines burn through fuel while their parts wear out, and new
@@ -3473,7 +3490,7 @@ chapter fully to be a productive programmer, but I do want to hint at why
 things work this way. As you work with state more, these concepts will
 solidify.
 
-#### Immutability
+### Immutability
 
 The references we’ve used in let bindings and function arguments are immutable:
 they never change.
@@ -3527,7 +3544,7 @@ called a closure. In Clojure, new functions close over all variables except
 their arguments–the arguments, of course, will be provided when the function is
 invoked.
 
-#### Delays
+### Delays
 
 Because functions close over their arguments, they can be used to defer
 evaluation of expressions. That’s how we introduced functions originally–like
@@ -3605,7 +3622,7 @@ Because delays are lazy, we can avoid doing expensive operations until they’re
 really needed. Like an IOU, we use delays when we aren’t ready to do something
 just yet, but when someone calls in the favor, we’ll make sure it happens.
 
-#### Futures
+### Futures
 
 What if we wanted to opportunistically defer computation? Modern computers have
 multiple cores, and operating systems let us share a core between two tasks. It
@@ -3665,7 +3682,7 @@ Futures are the most generic parallel construct in Clojure. You can use futures
 to do CPU-intensive computation faster, to wait for multiple network requests
 to complete at once, or to run housekeeping code periodically.
 
-### Promises
+## Promises
 
 Delays defer evaluation, and futures parallelize it. What if we wanted to defer
 something we don’t even have yet? To hand someone an empty box and, later,
@@ -3738,7 +3755,7 @@ without specifying how the evaluation occurs. We control exactly when and how
 the value is delivered. You can think of both delays and futures as being built
 atop promises, in a way.
 
-#### Vars
+### Vars
 
 So far the identities we’ve discussed have referred (eventually) to a single
 value, but the real world needs names that refer to different values at
@@ -3842,7 +3859,7 @@ global data, and for tracking the environment of a program–like where to print
 messages with prn, which database to talk to, and so on. Using vars for mutable
 program state is a recipe for disaster, as we’re about to see.
 
-#### Atoms
+### Atoms
 
 Vars can be read, set, and dynamically bound–but they aren’t easy to evolve.
 Imagine building up a set of integers:
@@ -3973,7 +3990,7 @@ flexible. You can use atoms with any immutable datatype–for instance, a map to
 track complex state. Reach for an atom whenever you want to update a single
 thing over time.
 
-#### Refs
+### Refs
 
 Atoms are a great way to represent state, but they are only linearizable
 individually. Updates to an atom aren’t well-ordered with respect to other
@@ -4064,7 +4081,7 @@ updates, use distinct atoms. If all operations update the same identities, use
 a single atom to hold a map of the system’s state. If a system requires complex
 interlocking state spread throughput the program–that’s when to reach for refs.
 
-#### Summary
+### Summary
 
 We moved beyond immutable programs into the world of changing state–and
 discovered the challenges of concurrency and parallelism. Where symbols provide
@@ -4097,7 +4114,7 @@ felt overwhelming! On the other hand, we’re now equipped to solve serious
 problems. We’ll take a break to apply what we’ve learned through practical
 examples, in Chapter Seven: Logistics.
 
-#### Exercises
+### Exercises
 
 Finding the sum of the first 10000000 numbers takes about 1 second on my machine:
 
@@ -4147,7 +4164,7 @@ work left. Verify that @sum is 4999950000. Experiment with different
 combinations of alter and commute–if both are correct, is one faster? Does
 using deref instead of ensure change the result?
 
-### Logistics
+## Logistics
 
 Previously, we covered state and mutability.
 
@@ -4169,7 +4186,7 @@ which we call libraries, packages, or dependencies. In Clojure, we have a
 standardized way to bind together all these parts into a single directory,
 called a project.
 
-#### Project structure
+### Project structure
 
 We created a project at the start of this book by using Leiningen, the Clojure
 project tool.
@@ -4221,7 +4238,7 @@ files, like images. src is where Clojure code lives, and test contains the
 corresponding tests. Finally, target is where Leiningen stores compiled code,
 built packages, and so on.
 
-#### Namespaces
+### Namespaces
 
 Every lein project starts out with a stub namespace containing a simple
 function. Let’s take a look at that namespace now–it lives in
@@ -4358,7 +4375,7 @@ object-oriented language after Clojure, remember that OO languages compose
 differently. Objects with hundreds of functions are usually considered unwieldy
 and should be split into smaller pieces.
 
-#### Code and tests
+### Code and tests
 
 It’s perfectly fine to test small programs in the REPL. We’ve written and
 refined hundreds of functions that way: by calling the function and seeing what
@@ -4567,7 +4584,7 @@ definitions simpler? This is one of those times. We didn’t have to define a
 special exception for zero powers because (*) returns the multiplicative
 identity 1, by convention.
 
-#### Exploring data
+### Exploring data
 
 The last bit of logistics we need to talk about is working with other people’s
 code. Clojure projects, like most modern programming environments, are built to
@@ -5082,7 +5099,7 @@ the laws!
        (into {})))
 ```
 
-#### Recap
+### Recap
 
 In this chapter, we expanded beyond transient programs written in the REPL. We
 learned how projects combine static resources, code, and tests into a single
@@ -5097,7 +5114,7 @@ knowledge of Clojure’s basic grammar, immutable data structures, core
 functions, sequences, threading macros, and vars to explore a real-world
 problem.
 
-#### Exercises
+### Exercises
 
 1. most-duis tells us about the raw number of reports, but doesn’t account for
 differences in county population. One would naturally expect counties with more
@@ -5116,7 +5133,7 @@ function most-prevalent which takes a file and a field name, like :arson, and
 finds the counties where that field is most often reported, per capita.
 4. Write a test to verify that most-prevalent is correct.
 
-### Modeling
+## Modeling
 
 Until this point in the book, we’ve dealt primarily in specific details: what
 an expression is, how math works, which functions apply to different data
@@ -5132,7 +5149,7 @@ using maps, sequences, and math functions together. At the same time, we’re
 going to practice how to represent a complex system; decomposing a problem into
 smaller parts, naming functions and variables, and writing tests.
 
-#### So you want to go to space
+### So you want to go to space
 
 First, we need a representation of a craft. The obvious properties for a rocket
 are its dry mass (how much it weighs without fuel), fuel mass, position,
@@ -5240,7 +5257,7 @@ the craft’s time and space coordinates.
   (merge craft initial-space-center))
 ```
 
-#### Forces
+### Forces
 
 Gravity continually pulls the spacecraft towards the center of the Earth,
 accelerating it by 9.8 meters/second every second. To figure out what direction
@@ -5443,7 +5460,7 @@ user=> (atlas-v)
 {:dry-mass 50050, :fuel-mass 284450, :time 0, :isp 3050, :max-fuel-rate 284450/253, :max-thrust 4152000.0}
 ```
 
-#### Launch
+### Launch
 
 Let’s prepare the rocket. We’ll use pprint to print it in a more readable form.
 
@@ -5640,7 +5657,7 @@ user=> (-> (atlas-v) prepare (step 1) pprint)
 This time, our velocity is increasing in the +x direction, at half a meter per
 second. We have liftoff!
 
-#### Flight
+### Flight
 
 We have a function that can move the rocket forward by one small step of time,
 but we’d like to understand the rocket’s trajectory as a whole; to see all
@@ -5804,7 +5821,7 @@ Tests failed.
 We made it to an altitude of 750 kilometers, and crashed 982 seconds after
 launch. We’re gonna need a bigger boat.
 
-#### Stage II
+### Stage II
 
 The Atlas V isn’t big enough to make it into orbit on its own. It carries a
 second stage, the Centaur), which is much smaller and uses more efficient
@@ -5923,7 +5940,7 @@ kilometers. That’s plenty high, but we’re still not making orbit. Why? Becau
 we’re going straight up, then straight back down. To orbit, we need to move
 sideways, around the earth.
 
-#### Orbital insertion
+### Orbital insertion
 
 Our spacecraft is shooting upwards, but in order to remain in orbit around the
 earth, it has to execute a second burn: an orbital injection maneuver. That
@@ -6101,7 +6118,7 @@ Ran 2 tests containing 3 assertions.
 
 We finally did it! We’re rocket scientists!
 
-#### Review
+### Review
 
 ```clojure
 (ns scratch.rocket)
@@ -6465,7 +6482,7 @@ and docstrings clarify the story of the code, making it readable to others.
 Tests ensure the software is correct, and allow us to work piecewise towards a
 solution.
 
-#### Exercises
+### Exercises
 
 We know the spacecraft reached orbit, but we have no idea what that orbit looks
 like. Since the trajectory is infinite in length, we can’t ask about the entire
@@ -6496,7 +6513,7 @@ same–achieving a perfectly circular orbit? One way to do this is to pick an
 orbital altitude and velocity of a known satellite–say, the International Space
 Station–and write the control software to match that velocity at that altitude.
 
-### Debugging
+## Debugging
 
 Writing software can be an exercise in frustration. Useless error messages,
 difficult-to-reproduce bugs, missing stacktrace information, obscure functions
@@ -6523,7 +6540,7 @@ Understand the problem.
 3. Look back
 4. Seems easy enough, right? Let’s go a little deeper.
 
-#### Understanding the problem
+### Understanding the problem
 
 Well *obviously* there’s a problem, right? The program failed to compile, or a
 test spat out bizarre numbers, or you hit an unexpected exception. But try to
@@ -6613,14 +6630,20 @@ pile of disjoint facts. Even if things look jumbled-up and confusing, don’t
 despair! Exploring gives the brain the pieces; it’ll link them together over
 time.
 
-Armed with a detailed *description*	 of the problem, we’re much better equipped to
+Armed with a detailed *description* of the problem, we’re much better equipped to
 solve it.
 
-#### Devise a plan
+### Devise a plan
 
-Our brains are excellent pattern-matchers, but not that great at tracking abstract logical operations. Try changing your viewpoint: rotating the problem into a representation that’s a little more tractable for your mind. Is there a similar problem you’ve seen in the past? Is this a well-known problem?
+Our brains are excellent pattern-matchers, but not that great at tracking
+abstract logical operations. Try changing your viewpoint: rotating the problem
+into a representation that’s a little more tractable for your mind. Is there a
+similar problem you’ve seen in the past? Is this a well-known problem?
 
-Make sure you know how to *check* the solution. With the problem isolated to a single function, we can write a test case that verifies the account balances are correct. Then we can experiment freely, and have some confidence that we’ve actually found a solution.
+Make sure you know how to *check* the solution. With the problem isolated to a
+single function, we can write a test case that verifies the account balances
+are correct. Then we can experiment freely, and have some confidence that we’ve
+actually found a solution.
 
 Can you solve a *related* problem? If only concurrent transfers trigger the
 problem, could we solve the issue by ensuring transactions never take place
@@ -6643,7 +6666,11 @@ Can you avoid solving the problem altogether? Is there a library, database, or
 language feature that does transaction management for us? Is integrating that
 library worth the reduced complexity in our application?
 
-We’re not mathematicians; we’re engineers. Part theorist, yes, but also part mechanic. Some problems take a more abstract approach, and others are better approached by tapping it with a wrench and checking the service manual. If other people have solved your problem already, using their solution can be much simpler than devising your own.
+We’re not mathematicians; we’re engineers. Part theorist, yes, but also part
+mechanic. Some problems take a more abstract approach, and others are better
+approached by tapping it with a wrench and checking the service manual. If
+other people have solved your problem already, using their solution can be much
+simpler than devising your own.
 
 Can you think of a way to get more diagnostic information? Perhaps we could log
 more data from the functions that are misbehaving, or find a way to dump and
@@ -6708,7 +6735,7 @@ answer first–they may have other priorities. A sincere thank-you is always
 appreciated–as is paying it forward by answering other users' questions on the
 list or channel!
 
-#### Dealing with abuse
+### Dealing with abuse
 
 Sadly, some women, LGBT people, and so on experience harassment on IRC or in
 other discussion circles. They may be asked inappropriate personal questions,
@@ -6748,7 +6775,7 @@ you’ll be able to ban them personally.
 
 Now, back to problem-solving.
 
-#### Execute the plan
+### Execute the plan
 
 Sometimes we can make a quick fix in the codebase, test it by hand, and move
 on. But for more serious problems, we’ll need a more involved process. I always
@@ -6783,7 +6810,7 @@ Some folks swear by time in the shower, others by hiking, or with pen and paper
 in a hammock. Find what works for you! The important thing seems to be giving
 yourself *away* from struggling with the problem.
 
-#### Look back
+### Look back
 
 Chances are you’ll know as soon as your solution works. The program compiles,
 transactions generate the correct amounts, etc. Now’s an important time to
@@ -6807,7 +6834,7 @@ changes fix it, as comments in the source code. Use that same description of
 the solution in your commit message, or attach it as a comment to the resources
 you used online, so that other people can come to the same understanding.
 
-#### Debugging Clojure
+### Debugging Clojure
 
 With these general strategies in mind, I’d like to talk specifically about the
 debugging *Clojure* code–especially understanding its *stacktraces*. Consider this
@@ -6906,7 +6933,9 @@ temp time). That first argument was a Double, but should have been an IFn.
 
 What the heck is an IFn? Its source code has a comment:
 
-IFn provides complete access to invoking any of Clojure’s API’s. You can also access any other library written in Clojure, after adding either its source or compiled form to the classpath.
+IFn provides complete access to invoking any of Clojure’s API’s. You can also
+access any other library written in Clojure, after adding either its source or
+compiled form to the classpath.
 
 So IFn has to do with invoking Clojure’s API. Ah–Fn probably stands for
 function–and this class is chock full of things like invoke(Object arg1, Object
@@ -7013,7 +7042,7 @@ In Clojure, the compiler does not generally enforce types at compile time,
 which allows for significant flexibility–but requires more rigorous testing to
 expose these errors.
 
-#### Higher order stacktraces
+### Higher order stacktraces
 
 The stacktrace shows us a path through the program, moving downwards through
 functions. However, that path may not be straightforward. When data is handed
@@ -7416,7 +7445,8 @@ user=> (use 'scratch.debugging :reload)
 :segments (12 14 nil 14 14 12 nil 12 24 34 nil 34)
 ```
 
-Ah! So the frames are intact, but the perimeters are bad. Let’s check the perimeter function:
+Ah! So the frames are intact, but the perimeters are bad. Let’s check the
+perimeter function:
 
 ```clojure
 (defn perimeter
@@ -7439,7 +7469,7 @@ total inches: 319
 
 Whallah!
 
-#### Recap
+### Recap
 
 As we solve more and more problems, we get faster at debugging–at skipping over
 irrelevant log data, figuring out exactly what input was at fault, knowing what
