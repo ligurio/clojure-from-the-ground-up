@@ -77,7 +77,7 @@ No matter who you are or who people think you are, this guide is for you.
 This book is about how to program. We’ll be learning in Clojure, which is a
 modern dialect of a very old family of computer languages, called Lisp. You’ll
 find that many of this book’s ideas will translate readily to other languages;
-though they may be expressed in [different
+though they may be [expressed in different
 ways](http://aphyr.com/posts/266-core-language-concepts).
 
 We’re going to explore the nature of syntax, metalanguages, values, references,
@@ -266,8 +266,8 @@ user=> 'inc
 inc
 ```
 
-Yes. The single quote ' escapes a sentence. In programming languages, we call
-sentences expressions or statements. A quote says “Rather than evaluating this
+Yes. The single quote `'` escapes a sentence. In programming languages, we call
+sentences `expressions` or statements. A quote says “Rather than *evaluating* this
 expression’s text, simply return the text itself, unchanged.” Quote a symbol,
 get a symbol. Quote a number, get a number. Quote anything, and get it back
 exactly as it came in.
@@ -281,10 +281,10 @@ user=> '(1 2 3)
 (1 2 3)
 ```
 
-A new kind of value, surrounded by parentheses: the list. LISP originally stood
+A new kind of value, surrounded by parentheses: the *list*. LISP originally stood
 for LISt Processing, and lists are still at the core of the language. In fact,
 they form the most basic way to compose expressions, or sentences. A list is a
-single expression which has multiple parts. For instance, this list contains
+single expression which has *multiple parts*. For instance, this list contains
 three elements: the numbers 1, 2, and 3. Lists can contain anything: numbers,
 strings, even other lists:
 
@@ -294,7 +294,7 @@ user=> '(nil "hi")
 ```
 
 A list containing two elements: the number 1, and a second list. That list
-contains two elements: the number 2, and another list. That list contains two
+contains two elements: the number 2, and another list. *That* list contains two
 elements: 3, and an empty list.
 
 ```clojure
@@ -303,7 +303,7 @@ user=> '(1 (2 (3 ())))
 ```
 
 You could think of this structure as a tree–which is a provocative idea,
-because languages are like trees too: sentences are comprised of clauses, which
+because *languages* are like trees too: sentences are comprised of clauses, which
 can be nested, and each clause may have subjects modified by adjectives, and
 verbs modified by adverbs, and so on. “Lindsay, my best friend, took the dog
 which we found together at the pound on fourth street, for a walk with her
@@ -340,14 +340,14 @@ clj=> '(inc 0)
 
 A basic sentence. Remember, since it’s quoted, we’re talking about the tree,
 the text, the expression, by itself. Absent interpretation. If we remove the
-single-quote, Clojure will interpret the expression:
+single-quote, Clojure will *interpret* the expression:
 
 ```clojure
 user=> (inc 0)
 1
 ```
 
-Incrementing zero yields one. And if we wanted to increment that value?
+Incrementing zero yields one. And if we wanted to increment *that* value?
 
 ```clojure
 Increment
@@ -358,7 +358,7 @@ user=> (inc (inc 0))
 ```
 
 A sentence in Lisp is a list. It starts with a verb, and is followed by zero or
-more objects for that verb to act on. Each part of the list can itself be
+more objects for that verb to act on. Each part of the list can *itself* be
 another list, in which case that nested list is evaluated first, just like a
 nested clause in a sentence. When we type
 
@@ -374,7 +374,7 @@ Clojure first looks up the meanings for the symbols in the code:
     0))
 ```
 
-Then evaluates the innermost list (inc 0), which becomes the number 1:
+Then evaluates the innermost list (`inc 0`), which becomes the number 1:
 
 ```clojure
 (#<core$inc clojure.core$inc@6f7ef41c>
@@ -383,7 +383,7 @@ Then evaluates the innermost list (inc 0), which becomes the number 1:
 
 Finally, it evaluates the outer list, incrementing the number 1:
 
-``clojure
+```clojure
 2
 ```
 
@@ -400,17 +400,19 @@ right. Innermost lists are evaluated before outer lists.
 That’s it.
 
 The entire grammar of Lisp: the structure for every expression in the language.
-We transform expressions by substituting meanings for symbols, and obtain some
-result. This is the core of the Lambda Calculus, and it is the theoretical
-basis for almost all computer languages. Ruby, Javascript, C, Haskell; all
-languages express the text of their programs in different ways, but internally
-all construct a tree of expressions. Lisp simply makes it explicit.
+We transform expressions by *substituting* meanings for symbols, and obtain
+some result. This is the core of the [Lambda
+Calculus](http://en.wikipedia.org/wiki/Lambda_calculus), and it is the
+theoretical basis for almost all computer languages. Ruby, Javascript, C,
+Haskell; all languages express the text of their programs in different ways,
+but internally all construct a tree of expressions. Lisp simply makes it
+explicit.
 
 ### Review
 
-We started by learning a few basic nouns: numbers like 5, strings like "cat",
-and symbols like inc and +. We saw how quoting makes the difference between an
-expression itself and the thing it evaluates to. We discovered symbols as names
+We started by learning a few basic nouns: numbers like `5`, strings like `"cat"`,
+and symbols like `inc` and `+`. We saw how quoting makes the difference between an
+*expression* itself and the thing it *evaluates* to. We discovered symbols as *names*
 for other values, just like how words represent concepts in any other language.
 Finally, we combined lists to make trees, and used those trees to represent a
 program.
@@ -426,25 +428,25 @@ take a tour of the basic nouns in the language.
 
 ### Types
 
-We’ve seen a few different values already–for instance, nil, true, false, 1,
-2.34, and "meow". Clearly all these things are different values, but some of
+We’ve seen a few different values already – for instance, `nil`, `true`, `false`, `1`,
+`2.34`, and `"meow"`. Clearly all these things are *different* values, but some of
 them seem more alike than others.
 
-For instance, 1 and 2 are very similar numbers; both can be added, divided,
-multiplied, and subtracted. 2.34 is also a number, and acts very much like 1
-and 2, but it’s not quite the same. It’s got decimal points. It’s not an
-integer. And clearly true is not very much like a number. What is true plus
+For instance, `1` and `2` are *very* similar numbers; both can be added, divided,
+multiplied, and subtracted. `2.34` is also a number, and acts very much like 1
+and 2, but it’s not quite the same. It’s got *decimal* points. It’s not an
+*integer*. And clearly `true` is *not very* much like a number. What is true plus
 one? Or false divided by 5.3? These questions are poorly defined.
 
-We say that a type is a group of values which work in the same way. It’s a
-property that some values share, which allows us to organize the world into
-sets of similar things. 1 + 1 and 1 + 2 use the same addition, which adds
-together integers. Types also help us verify that a program makes sense: that
+We say that a *type* is a group of values which work in the same way. It’s a
+*property*	 that some values share, which allows us to organize the world into
+sets of similar things. 1 + 1 and 1 + 2 use the *same addition*, which adds
+together integers. Types also help us *verify* that a program makes sense: that
 you can only add together numbers, instead of adding numbers to porcupines.
 
 Types can overlap and intersect each other. Cats are animals, and cats are
-fuzzy too. You could say that a cat is a member (or sometimes “instance”), of
-the fuzzy and animal types. But there are fuzzy things like moss which aren’t
+fuzzy too. You could say that a cat is a *member* (or sometimes “instance”), of
+the fuzzy and animal types. But there are fuzzy things like moss which *aren’t*
 animals, and animals like alligators that aren’t fuzzy in the slightest.
 
 Other types completely subsume one another. All tabbies are housecats, and all
@@ -456,13 +458,13 @@ also get in the way of the programmer, because not every useful classification
 (like “fuzziness”) is purely hierarchical. Expressing overlapping types in a
 hierarchy can be tricky.
 
-Every language has a type system; a particular way of organizing nouns into
+Every language has a *type system*; a particular way of organizing nouns into
 types, figuring out which verbs make sense on which types, and relating types
 to one another. Some languages are strict, and others more relaxed. Some
 emphasize hierarchy, and others a more ad-hoc view of the world. We call
-Clojure’s type system strong in that operations on improper types are simply
+Clojure’s type system *strong* in that operations on improper types are simply
 not allowed: the program will explode if asked to subtract a dandelion. We also
-say that Clojure’s types are dynamic because they are enforced when the program
+say that Clojure’s types are *dynamic* because they are enforced when the program
 is run, instead of when the program is first read by the computer.
 
 We’ll learn more about the formal relationships between types later, but for
@@ -478,17 +480,17 @@ user=> (type 3)
 java.lang.Long
 ```
 
-So 3 is a java.lang.Long, or a “Long”, for short. Because Clojure is built on
+So 3 is a `java.lang.Long`, or a “Long”, for short. Because Clojure is built on
 top of Java, many of its types are plain old Java types.
 
 Longs, internally, are represented as a group of sixty-four binary digits (ones
-and zeroes), written down in a particular pattern called signed two’s
-complement representation. You don’t need to worry about the specifics–there
-are only two things to remember about longs. First, longs use one bit to store
-the sign: whether the number is positive or negative. Second, the other 63 bits
-represent the size of the number. That means the biggest number you can
-represent with a long is 263 - 1 (the minus one is because of the number 0),
-and the smallest long is -263.
+and zeroes), written down in a particular pattern called [signed two’s
+complement representation](http://en.wikipedia.org/wiki/Two's_complement). You
+don’t need to worry about the specifics–there are only two things to remember
+about longs. First, longs use one bit to store the sign: whether the number is
+positive or negative. Second, the other 63 bits represent the *size* of the
+number. That means the biggest number you can represent with a long is 2^63 - 1
+(the minus one is because of the number 0), and the smallest long is -2^63.
 
 How big is 2^63 - 1?
 
@@ -507,13 +509,13 @@ ArithmeticException integer overflow  clojure.lang.Numbers.throwIntOverflow (Num
 ```
 
 An error occurs! This is Clojure telling us that something went wrong. The type
-of error was an ArithmeticException, and its message was “integer overflow”,
+of error was an `ArithmeticException`, and its message was “integer overflow”,
 meaning “this type of number can’t hold a number that big”. The error came from
-a specific place in the source code of the program: Numbers.java, on line 1388.
+a specific *place* in the source code of the program: `Numbers.java`, on line 1388.
 That’s a part of the Clojure source code. Later, we’ll learn more about how to
 unravel error messages and find out what went wrong.
 
-The important thing is that Clojure’s type system protected us from doing
+The important thing is that Clojure’s type system *protected* us from doing
 something dangerous; instead of returning a corrupt value, it aborted
 evaluation and returned an error.
 
@@ -559,7 +561,7 @@ user=> Byte/MAX_VALUE
 
 ### Fractional numbers
 
-To represent numbers between integers, we often use floating-point numbers,
+To represent numbers *between* integers, we often use floating-point numbers,
 which can represent small numbers with fine precision, and large numbers with
 coarse precision. Floats use 32 bits, and Doubles use 64. Doubles are the
 default in Clojure.
@@ -571,16 +573,17 @@ user=> (type (float 1.23))
 java.lang.Float
 ```
 
-Floating point math is complicated, and we won’t get bogged down in the details
-just yet. The important thing to know is floats and doubles are approximations.
-There are limits to their correctness:
+Floating point math is
+[complicated](http://en.wikipedia.org/wiki/Floating_point), and we won’t get
+bogged down in the details just yet. The important thing to know is floats and
+doubles are *approximations*. There are limits to their correctness:
 
 ```clojure
 user=> 0.99999999999999999
 1.0
 ```
 
-To represent fractions exactly, we can use the ratio type:
+To represent fractions exactly, we can use the *ratio* type:
 
 ```clojure
 user=> (type 1/3)
@@ -590,7 +593,7 @@ clojure.lang.Ratio
 ### Mathematical operations
 
 The exact behavior of mathematical operations in Clojure depends on their
-types. In general, though, Clojure aims to preserve information. Adding two
+types. In general, though, Clojure aims to *preserve* information. Adding two
 longs returns a long; adding a double and a long returns a double.
 
 ```clojure
@@ -600,7 +603,7 @@ user=> (+ 1 2.0)
 3.0
 ```
 
-3 and 3.0 are not the same number; one is a long, and the other a double. But
+`3` and `3.0` are *not* the same number; one is a long, and the other a double. But
 for most purposes, they’re equivalent, and Clojure will tell you so:
 
 ```clojure
@@ -610,12 +613,12 @@ user=> (== 3 3.0)
 true
 ```
 
-= asks whether all the things that follow are equal. Since floats are
-approximations, = considers them different from integers. == also compares
+`=` asks whether all the things that follow are equal. Since floats are
+approximations, `=` considers them different from integers. `==` also compares
 things, but a little more loosely: it considers integers equivalent to their
 floating-point representations.
 
-We can also subtract with -, multiply with *, and divide with /.
+We can also subtract with `-`, multiply with `*`, and divide with `/`.
 
 ```clojure
 user=> (- 3 1)
@@ -637,7 +640,7 @@ user=> (* 2 3 1/5)
 ```
 
 Subtraction with more than 2 numbers subtracts all later numbers from the
-first. Division divides the first number by all the rest.
+*first*. Division divides the first number by all the rest.
 
 ```clojure
 user=> (- 5 1 1 1)
@@ -647,7 +650,7 @@ user=> (/ 24 2 3)
 ```
 
 By extension, we can define useful interpretations for numeric operations with
-just a single number:
+just a *single* number:
 
 ```clojure
 user=> (+ 2)
@@ -673,7 +676,7 @@ user=> (*)
 ```
 
 Often, we want to ask which number is bigger, or if one number falls between
-two others. <= means “less than or equal to”, and asserts that all following
+two others. `<=` means “less than or equal to”, and asserts that all following
 values are in order from smallest to biggest.
 
 ```clojure
@@ -683,7 +686,7 @@ user=> (<= 1 3 2)
 false
 ```
 
-< means “strictly less than”, and works just like <=, except that no two values
+`<` means “strictly less than”, and works just like `<=`, except that no two values
 may be equal.
 
 ```clojure
@@ -693,7 +696,7 @@ user=> (< 1 1 2)
 false
 ```
 
-Their friends > and >= mean “greater than” and “greater than or equal to”,
+Their friends `>` and `>=` mean “greater than” and “greater than or equal to”,
 respectively, and assert that numbers are in descending order.
 
 ```clojure
@@ -703,7 +706,7 @@ user=> (> 1 2 3)
 false
 ```
 
-Also commonly used are inc and dec, which add and subtract one to a number,
+Also commonly used are `inc` and `dec`, which add and subtract one to a number,
 respectively:
 
 ```clojure
@@ -724,7 +727,7 @@ false
 
 ### Strings
 
-We saw that strings are text, surrounded by double quotes, like "foo". Strings
+We saw that strings are text, surrounded by double quotes, like `"foo"`. Strings
 in Clojure are, like Longs, Doubles, and company, backed by a Java type:
 
 ```clojure
@@ -732,9 +735,9 @@ user=> (type "cat")
 java.lang.String
 ```
 
-We can make almost anything into a string with str. Strings, symbols, numbers,
-booleans; every value in Clojure has a string representation. Note that nil’s
-string representation is ""; an empty string.
+We can make almost *anything* into a string with `str`. Strings, symbols, numbers,
+booleans; every value in Clojure has a string representation. Note that `nil`’s
+string representation is `""`; an empty string.
 
 ```clojure
 user=> (str "cat")
@@ -751,7 +754,7 @@ user=> (str nil)
 ""
 ```
 
-str can also combine things together into a single string, which we call
+`str` can also *combine* things together into a single string, which we call
 “concatenation”.
 
 ```clojure
@@ -759,8 +762,9 @@ user=> (str "meow " 3 " times")
 "meow 3 times"
 ```
 
-To look for patterns in text, we can use a regular expression, which is a tiny
-language for describing particular arrangements of text. re-find and re-matches
+To look for patterns in text, we can use a [regular
+expression](http://www.regular-expressions.info/tutorial.html), which is a tiny
+language for describing particular arrangements of text. `re-find` and `re-matches`
 look for occurrences of a regular expression in a string. To find a cat:
 
 ```clojure
@@ -770,11 +774,11 @@ user=> (re-find #"cat" "only dogs here")
 nil
 ```
 
-That #"..." is Clojure’s way of writing a regular expression.
+That `#"..."` is Clojure’s way of writing a regular expression.
 
-With re-matches, you can extract particular parts of a string which match an
-expression. Here we find two strings, separated by a :. The parentheses mean
-that the regular expression should capture that part of the match. We get back
+With `re-matches`, you can extract particular parts of a string which match an
+expression. Here we find two strings, separated by a `:`. The parentheses mean
+that the regular expression should *capture* that part of the match. We get back
 a list containing the part of the string that matched the first parentheses,
 followed by the part that matched the second parentheses.
 
@@ -787,12 +791,13 @@ Regular expressions are a powerful tool for searching and matching text,
 especially when working with data files. Since regexes work the same in most
 languages, you can use any guide online to learn more. It’s not something you
 have to master right away; just learn specific tricks as you find you need
-them. For a deeper guide, try Fitzgerald’s Introducing Regular Expressions.
+them. For a deeper guide, try Fitzgerald’s [Introducing Regular
+Expressions](http://shop.oreilly.com/product/0636920012337.do).
 
 ### Booleans and logic
 
 Everything in Clojure has a sort of charge, a truth value, sometimes called
-“truthiness”. true is positive and false is negative. nil is negative, too.
+“truthiness”. `true` is positive and `false` is negative. `nil` is negative, too.
 
 ```clojure
 user=> (boolean true)
@@ -819,9 +824,9 @@ true
 If you’re coming from a C-inspired language, where 0 is considered false, this
 might be a bit surprising. Likewise, in much of POSIX, 0 is considered success
 and nonzero values are failures. Lisp allows no such confusion: the only
-negative values are false and nil.
+negative values are `false` and `nil`.
 
-We can reason about truth values using and, or, and not. and returns the first
+We can reason about truth values using `and`, `or`, and `not`. and returns the first
 negative value, or the last value if all are truthy.
 
 ```clojure
@@ -833,7 +838,7 @@ user=> (and 1 2 3)
 3
 ```
 
-Similarly, or returns the first positive value.
+Similarly, `or` returns the first positive value.
 
 ```clojure
 user=> (or false 2 3)
@@ -842,7 +847,7 @@ user=> (or false nil)
 nil
 ```
 
-And not inverts the logical sense of a value:
+And `not` inverts the logical sense of a value:
 
 ```clojure
 user=> (not 2)
@@ -851,14 +856,14 @@ user=> (not nil)
 true
 ```
 
-We’ll learn more about Boolean logic when we start talking about control flow;
+We’ll learn more about Boolean logic when we start talking about *control flow*;
 the way we alter evaluation of a program and express ideas like “if I’m a cat,
 then meow incessantly”.
 
 ### Symbols
 
 We saw symbols in the previous chapter; they’re bare strings of characters,
-like foo or +.
+like `foo` or `+.`
 
 ```clojure
 user=> (class 'str)
@@ -866,13 +871,13 @@ clojure.lang.Symbol
 ```
 
 Symbols can have either short or full names. The short name is used to refer to
-things locally. The fully qualified name is used to refer unambiguously to a
+things locally. The *fully qualified* name is used to refer unambiguously to a
 symbol from anywhere. If I were a symbol, my name would be “Kyle”, and my full
 name “Kyle Kingsbury.”
 
-Symbol names are separated with a /. For instance, the symbol str is also
-present in a family called clojure.core; the corresponding full name is
-clojure.core/str.
+Symbol names are separated with a `/`. For instance, the symbol `str` is also
+present in a family called `clojure.core`; the corresponding full name is
+`clojure.core/str`.
 
 ```clojure
 user=> (= str clojure.core/str)
@@ -889,15 +894,15 @@ symbol, too.
 clojure.lang.Symbol
 ```
 
-The job of symbols is to refer to things, to point to other values. When
+The job of symbols is to *refer* to things, to *point* to other values. When
 evaluating a program, symbols are looked up and replaced by their corresponding
 values. That’s not the only use of symbols, but it’s the most common.
 
 ### Keywords
 
-Closely related to symbols and strings are keywords, which begin with a :.
+Closely related to symbols and strings are *keywords*, which begin with a `:`.
 Keywords are like strings in that they’re made up of text, but are specifically
-intended for use as labels or identifiers. These aren’t labels in the sense of
+intended for use as *labels* or *identifiers*. These aren’t labels in the sense of
 symbols: keywords aren’t replaced by any other value. They’re just names, by
 themselves.
 
@@ -911,14 +916,14 @@ user=> (name :cat)
 ```
 
 As labels, keywords are most useful when paired with other values in a
-collection, like a map. Keywords can also be used as verbs to look up specific
-values in other data types. We’ll learn more about keywords shortly.
+collection, like a *map*. Keywords can also be used as verbs to *look up specific
+values* in other data types. We’ll learn more about keywords shortly.
 
 ### Lists
 
-A collection is a group of values. It’s a container which provides some
+A collection is a group of values. It’s a *container* which provides some
 structure, some framework, for the things that it holds. We say that a
-collection contains elements, or members. We saw one kind of collection–a
+collection contains *elements*, or *members*. We saw one kind of collection–a
 list–in the previous chapter.
 
 ```clojure
@@ -928,8 +933,8 @@ user=> (type '(1 2 3))
 clojure.lang.PersistentList
 ```
 
-Remember, we quote lists with a ' to prevent them from being evaluated. You can
-also construct a list using list:
+Remember, we *quote* lists with a `'` to prevent them from being evaluated. You can
+also construct a list using `list`:
 
 ```clojure
 user=> (list 1 2 3)
@@ -943,15 +948,15 @@ user=> (= (list 1 2) (list 1 2))
 true
 ```
 
-You can modify a list by conjoining an element onto it:
+You can modify a list by `conj`oining an element onto it:
 
 ```clojure
 user=> (conj '(1 2 3) 4)
 (4 1 2 3)
 ```
 
-We added 4 to the list–but it appeared at the front. Why? Internally, lists are
-stored as a chain of values: each link in the chain is a tiny box which holds
+We added 4 to the list–but it appeared at the *front*. Why? Internally, lists are
+stored as a *chain* of values: each link in the chain is a tiny box which holds
 the value and a connection to the next link. This data structure, called a
 linked list, offers immediate access to the first element.
 
@@ -974,18 +979,18 @@ user=> (nth (list 1 2 3) 2)
 3
 ```
 
-nth gets the element of an ordered collection at a particular index. The first
+`nth` gets the element of an ordered collection at a particular *index*. The first
 element is index 0, the second is index 1, and so on.
 
 This means that lists are well-suited for small collections, or collections
 which are read in linear order, but are slow when you want to get arbitrary
 elements from later in the list. For fast access to every element, we use a
-vector.
+*vector*.
 
 ### Vectors
 
 Vectors are surrounded by square brackets, just like lists are surrounded by
-parentheses. Because vectors aren’t evaluated like lists are, there’s no need
+parentheses. Because vectors *aren’t* evaluated like lists are, there’s no need
 to quote them:
 
 ```clojure
@@ -995,8 +1000,8 @@ user=> (type [1 2 3])
 clojure.lang.PersistentVector
 ```
 
-You can also create vectors with vector, or change other structures into
-vectors with vec:
+You can also create vectors with `vector`, or change other structures into
+vectors with `vec`:
 
 ```clojure
 user=> (vector 1 2 3)
@@ -1005,20 +1010,20 @@ user=> (vec (list 1 2 3))
 [1 2 3]
 ```
 
-conj on a vector adds to the end, not the start:
+`conj` on a vector adds to the *end*, not the *start*:
 
 ```clojure
 user=> (conj [1 2 3] 4)
 [1 2 3 4]
 ```
 
-Our friends first, second, and nth work here too; but unlike lists, nth is fast
+Our friends `first`, `second`, and `nth` work here too; but unlike lists, nth is *fast*
 on vectors. That’s because internally, vectors are represented as a very broad
 tree of elements, where each part of the tree branches into 32 smaller trees.
 Even very large vectors are only a few layers deep, which means getting to
 elements only takes a few hops.
 
-In addition to first, you’ll often want to get the remaining elements in a
+In addition to `first`, you’ll often want to get the *remaining* elements in a
 collection. There are two ways to do this:
 
 ```clojure
@@ -1028,7 +1033,7 @@ user=> (next [1 2 3])
 (2 3)
 ```
 
-rest and next both return “everything but the first element”. They differ only
+`rest` and `next` both return “everything but the first element”. They differ only
 by what happens when there are no remaining elements:
 
 ```clojure
@@ -1041,14 +1046,14 @@ nil
 rest returns logical true, next returns logical false. Each has their uses, but
 in almost every case they’re equivalent–I interchange them freely.
 
-We can get the final element of any collection with last:
+We can get the final element of any collection with `last`:
 
 ```clojure
 user=> (last [1 2 3])
 3
 ```
 
-And figure out how big the vector is with count:
+And figure out how big the vector is with `count`:
 
 ```clojure
 user=> (count [1 2 3])
@@ -1056,7 +1061,7 @@ user=> (count [1 2 3])
 ```
 
 Because vectors are intended for looking up elements by index, we can also use
-them directly as verbs:
+them directly as *verbs*:
 
 ```
 user=> ([:a :b :c] 1)
@@ -1065,8 +1070,8 @@ user=> ([:a :b :c] 1)
 
 So we took the vector containing three keywords, and asked “What’s the element
 at index 1?” Lisp, like most (but not all!) modern languages, counts up from
-zero, not one. Index 0 is the first element, index 1 is the second element, and
-so on. In this vector, finding the element at index 1 evaluates to :b.
+*zero*, not one. Index 0 is the first element, index 1 is the second element, and
+so on. In this vector, finding the element at index 1 evaluates to `:b`.
 
 Finally, note that vectors and lists containing the same elements are
 considered equal in Clojure:
@@ -1091,8 +1096,8 @@ user=> #{:a :b :c}
 #{:a :c :b}
 ```
 
-Sets are surrounded by #{...}. Notice that though we gave the elements :a, :b,
-and :c, they came out in a different order. In general, the order of sets can
+Sets are surrounded by `#{...}`. Notice that though we gave the elements `:a`, `:b`,
+and `:c`, they came out in a different order. In general, the order of sets can
 shift at any time. If you want a particular order, you can ask for it as a list
 or vector:
 
@@ -1108,7 +1113,7 @@ Or ask for the elements in sorted order:
 (:a :b :c)
 ```
 
-conj on a set adds an element:
+`conj` on a set adds an element:
 
 ```clojure
 user=> (conj #{:a :b :c} :d)
@@ -1117,8 +1122,8 @@ user=> (conj #{:a :b :c} :a)
 #{:a :c :b}
 ```
 
-Sets never contain an element more than once, so conjing an element which is
-already present does nothing. Conversely, one removes elements with disj:
+Sets never contain an element more than once, so `conj`ing an element which is
+already present does nothing. Conversely, one removes elements with `disj`:
 
 ```clojure
 user=> (disj #{"hornet" "hummingbird"} "hummingbird")
@@ -1126,7 +1131,7 @@ user=> (disj #{"hornet" "hummingbird"} "hummingbird")
 ````
 
 The most common operation with a set is to check whether something is inside
-it. For this we use contains?.
+it. For this we use `contains`?.
 
 ```clojure
 user=> (contains? #{1 2 3} 3)
@@ -1135,8 +1140,8 @@ user=> (contains? #{1 2 3} 5)
 false
 ```
 
-Like vectors, you can use the set itself as a verb. Unlike contains?, this
-expression returns the element itself (if it was present), or nil.
+Like vectors, you can use the set *itself* as a verb. Unlike `contains?`, this
+expression returns the element itself (if it was present), or `nil`.
 
 ```clojure
 user=> (#{1 2 3} 3)
@@ -1145,7 +1150,7 @@ user=> (#{1 2 3} 4)
 nil
 ```
 
-You can make a set out of any other collection with set.
+You can make a set out of any other collection with `set`.
 
 ```clojure
 user=> (set [:a :b :c])
@@ -1154,8 +1159,8 @@ user=> (set [:a :b :c])
 
 ### Maps
 
-The last collection on our tour is the map: a data structure which associates
-keys with values. In a dictionary, the keys are words and the definitions are
+The last collection on our tour is the *map*: a data structure which associates
+*keys* with *values*. In a dictionary, the keys are words and the definitions are
 the values. In a library, keys are call signs, and the books are values. Maps
 are indexes for looking things up, and for representing different pieces of
 named information together. Here’s a cat:
@@ -1165,10 +1170,10 @@ user=> {:name "mittens" :weight 9 :color "black"}
 {:weight 9, :name "mittens", :color "black"}
 ```
 
-Maps are surrounded by braces {...}, filled by alternating keys and values. In
-this map, the three keys are :name, :color, and :weight, and their values are
-"mittens", "black", and 9, respectively. We can look up the corresponding value
-for a key with get:
+Maps are surrounded by braces `{...}`, filled by alternating keys and values. In
+this map, the three keys are `:name`, `:color`, and `:weight`, and their values are
+`"mittens"`, `"black"`, and 9, respectively. We can look up the corresponding value
+for a key with `get`:
 
 ```clojure
 user=> (get {"cat" "meow" "dog" "woof"} "cat")
@@ -1177,7 +1182,7 @@ user=> (get {:a 1 :b 2} :c)
 nil
 ```
 
-get can also take a default value to return instead of nil, if the key doesn’t
+`get` can also take a *default* value to return instead of nil, if the key doesn’t
 exist in that map.
 
 ```clojure
@@ -1200,7 +1205,7 @@ user=> (:raccoon {:weasel "queen" :raccoon "king"})
 "king"
 ```
 
-You can add a value for a given key to a map with assoc.
+You can add a value for a given key to a map with `assoc`.
 
 ```clojure
 user=> (assoc {:bolts 1088} :camshafts 3)
@@ -1209,15 +1214,15 @@ user=> (assoc {:camshafts 3} :camshafts 2)
 {:camshafts 2}
 ```
 
-Assoc adds keys if they aren’t present, and replaces values if they’re already
-there. If you associate a value onto nil, it creates a new map.
+Assoc adds keys if they aren’t present, and *replaces* values if they’re already
+there. If you associate a value onto `nil`, it creates a new map.
 
 ```clojure
 user=> (assoc nil 5 2)
 {5 2}
 ```
 
-You can combine maps together using merge, which yields a map containing all
+You can combine maps together using `merge`, which yields a map containing all
 the elements of all given maps, preferring the values from later ones.
 
 ```clojure
@@ -1225,7 +1230,7 @@ user=> (merge {:a 1 :b 2} {:b 3 :c 4})
 {:c 4, :a 1, :b 3}
 ```
 
-Finally, to remove a value, use dissoc.
+Finally, to remove a value, use `dissoc`.
 
 ```clojure
 user=> (dissoc {:potatoes 5 :mushrooms 2} :mushrooms)
@@ -1235,7 +1240,7 @@ user=> (dissoc {:potatoes 5 :mushrooms 2} :mushrooms)
 ### Putting it all together
 
 All these collections and types can be combined freely. As software engineers,
-we model the world by creating a particular representation of the problem in
+we model the world by creating a particular *representation* of the problem in
 the program. Having a rich set of values at our disposal allows us to talk
 about complex problems. We might describe a person:
 
@@ -1270,12 +1275,12 @@ Or the Gini coefficients of nations, as measured over time:
  "Uruguay"     {2008 46.3 2009 46.3 2010 45.3}}
 ```
 
-In Clojure, we compose data structures to form more complex values; to talk
-about bigger ideas. We use operations like first, nth, get, and contains? to
-extract specific information from these structures, and modify them using conj,
-disj, assoc, dissoc, and so on.
+In Clojure, we *compose* data structures to form more complex values; to talk
+about bigger ideas. We use operations like `first`, `nth`, `get`, and `contains?` to
+extract specific information from these structures, and modify them using `conj`,
+`disj`, `assoc`, `dissoc`, and so on.
 
-We started this chapter with a discussion of types: groups of similar objects
+We started this chapter with a discussion of *types*: groups of similar objects
 which obey the same rules. We learned that bigints, longs, ints, shorts, and
 bytes are all integers, that doubles and floats are approximations to decimal
 numbers, and that ratios represent fractions exactly. We learned the
@@ -1293,7 +1298,7 @@ user=> (type type)
 clojure.core$type
 ```
 
-What is this type thing, exactly? What are these verbs we’ve been learning, and
+What *is* this `type` thing, exactly? What *are* these verbs we’ve been learning, and
 where do they come from? This is the central question of chapter three:
 functions.
 
