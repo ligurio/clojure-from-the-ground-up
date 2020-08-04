@@ -1,6 +1,8 @@
 MAKRDOWN_FILES += README.md
+COVER_IMAGE = bg.jpg
 PANDOC = pandoc
-PANDOC_OPT = -s --toc-depth=4 --toc -c epub.css title.txt $(MAKRDOWN_FILES)
+PANDOC_OPT += -s --toc-depth=4 --toc -c epub.css
+PANDOC_OPT += --epub-cover-image=$(COVER_IMAGE) title.txt $(MAKRDOWN_FILES)
 NAME = Kyle_Kingsbury_Clojure_From_The_Ground_Up
 
 all: $(NAME).epub $(NAME).html
