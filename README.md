@@ -8858,15 +8858,15 @@ When a function’s behavior depends on the type of values it is provided, we
 call that function polymorphic. Many of Clojure’s core functions, like conj or
 reduce, are polymorphic: we can conj into maps, vectors, sets, and lists, and
 each does something different. Often, our own code is implicitly polymorphic by
-virtue of using other polymorphic functions: (defn add-bird [coll] (conj coll
-:bird)) can add birds to lots of different things.
+virtue of using other polymorphic functions: `(defn add-bird [coll] (conj coll
+:bird))` can add birds to lots of different things.
 
 When we need a function whose behavior explicitly depends on its arguments, we
 can use ad-hoc approaches, like if, cond, or case. The instance?, type, and
 supers functions let us choose what to do based on the type of the value.
 
-When we need an open function—one whose behavior can be extended to new things
-later—we use a multimethod, an interface, or a protocol. Multimethods are the
+When we need an open function-one whose behavior can be extended to new things
+later - we use a multimethod, an interface, or a protocol. Multimethods are the
 most general approach: they use a dispatch function, which receives the
 function’s arguments and decides which implementation to call. They’re not
 limited to dispatching by argument type: they can use arbitrary values and
@@ -8883,11 +8883,11 @@ nothing stopping you from writing your own documented wrapper functions, or
 using definterface+, which does so automatically. Interfaces are slightly
 faster; prefer them when performance matters.
 
-To create instances of a new type, we have reify. Like (fn [x] ...), reify
-generates an anonymous type—it can have interfaces and protocols as supertypes,
+To create instances of a new type, we have reify. Like `(fn [x] ...)`, reify
+generates an anonymous type - it can have interfaces and protocols as supertypes,
 and provides implementations for those types, but has no (predictable,
 meaningful) name. When we want to name our types—perhaps so that other people
-can extend them later—we use deftype and defrecord. Most of the time, defrecord
+can extend them later - we use deftype and defrecord. Most of the time, `defrecord`
 is most useful: they work like maps out of the box. However, deftype is
 available should we need to construct bare-bones types with unusual behaviors.
 
@@ -8898,52 +8898,52 @@ concepts often in Clojure. A topic for later discussion!
 ### Problems
 
 Write a sorted function that uses cond and instance? to convert lists to sorted
-lists (using (sort ...)), and sets to sorted sets (using (into (sorted-set)
-...)).
+lists (using `(sort ...)`), and sets to sorted sets (using `(into (sorted-set)
+...)`).
 
-Rewrite sorted as a multimethod. Using defmethod, extend sorted to handle maps.
+Rewrite sorted as a multimethod. Using `defmethod`, extend sorted to handle maps.
 
-Add a checked-off field to the GroceryList type, and use it to store a set of
+Add a checked-off field to the `GroceryList` type, and use it to store a set of
 items that are already in the cart. Write a check-off function that takes a
 grocery list and checks off an item on it, by adding that item to the
-checked-off set: (check-off my-list eggs)
+checked-off `set: (check-off my-list eggs)`.
 
-Write a remaining function which takes a GroceryList and returns the items that
+Write a remaining function which takes a `GroceryList` and returns the items that
 haven’t been checked off yet.
 
-Change the definition of print-out for GroceryList to take the checked-off set
-into account, printing an [x] in front of checked-off items.
+Change the definition of print-out for `GroceryList` to take the checked-off set
+into account, printing an `[x]` in front of checked-off items.
 
-Imagine Clojure had no built-in sets. Make up a Set protocol with some basic
-operations, like add-element, has-element?, and remove-element.
+Imagine Clojure had no built-in sets. Make up a `Set` protocol with some basic
+operations, like `add-element`, `has-element?`, and `remove-element`.
 
 Using a vector or list to store your elements, write a basic implementation of
-your Set protocol. Experiment to make sure adding the same item twice doesn’t
+your `Set` protocol. Experiment to make sure adding the same item twice doesn’t
 add two copies.
 
-Try making larger and larger sets–say, with ten, a thousand, and a hundred
-thousand elements. Use (time (has-element? some-set 123)) to see how your set
+Try making larger and larger `sets–say`, with ten, a thousand, and a hundred
+thousand elements. Use `(time (has-element? some-set 123))` to see how your set
 performance changes with size. Why is this?
 
 Write a different implementation of a Set, which uses a map to store its
 elements. Compare its performance to your list-based set.
 
-The deref function uses an interface called clojure.lang.IDeref to return the
-current value of a container type. Using deftype, define your own container
-type. Try @(MyContainer :hi) to verify that you can get the value of your
-container (:hi) back.
+The `deref` function uses an interface called `clojure.lang.IDeref` to return the
+current value of a container type. Using `deftype`, define your own container
+type. Try `@(MyContainer :hi)` to verify that you can get the value of your
+container `(:hi)` back.
 
-[advanced] So far, we’ve worked only with immutable types. deftype lets us
-define mutable types by tagging a field with ^:unsynchronized-mutable, like so:
-(deftype DangerBox [^:unsynchronized-mutable value] ...). Design a Mutable
-protocol with a (write! box value) function to overwrite the value of a mutable
-container. Using (set! field value), build your own mutable container type
-which supports both Mutable and IDeref. Confirm that you can change its value
-using write!, and read it back using @.
+[advanced] So far, we’ve worked only with immutable types. `deftype` lets us
+define mutable types by tagging a field with `^:unsynchronized-mutable`, like so:
+`(deftype DangerBox [^:unsynchronized-mutable value] ...)`. Design a `Mutable`
+protocol with a `(write! box value)` function to overwrite the value of a mutable
+container. Using `(set! field value)`, build your own mutable container type
+which supports both `Mutable` and `IDeref`. Confirm that you can change its value
+using `write!`, and read it back using `@`.
 
 [advanced] Use your mutable container as a counter by reading its current state
-and writing back a value one greater–e.g. via (write! box (inc @box)). Using
-dotimes, perform many updates in a row, and verify that the final value of the
+and writing back a value one greater–e.g. via `(write! box (inc @box))`. Using
+`dotimes`, perform many updates in a row, and verify that the final value of the
 counter is the same as the number you passed to dotimes.
 
 [advanced] Run this dotimes increment loop in two threads at once, using
